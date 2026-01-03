@@ -325,9 +325,8 @@
           <label for="passkey">緊急起動パスキー</label>
           <input type="password" id="passkey" value="<?= config.passkey ?>" placeholder="遺言のトリガーとなる合言葉">
         </div>
-        <div class="form-group">
-          <label for="keymanLineId">キーマンのLINE ID</label>
-          <input type="text" id="keymanLineId" value="<?= config.keymanLineId ?>" placeholder="トリガーを実行する信頼できる人のID">
+        <div style="display: flex; align-items: center; color: var(--text-muted); font-size: 0.85rem;">
+          <p>※合言葉によってシステムが起動されると、以下の「遺言・最終メッセージ」に登録された全員へ即座に通知が飛びます。</p>
         </div>
       </div>
     </section>
@@ -445,7 +444,6 @@
 
       const data = {
         passkey: document.getElementById('passkey').value,
-        keymanLineId: document.getElementById('keymanLineId').value,
         gracePeriodHours: document.getElementById('gracePeriodHours').value,
         macrodroidWebhookUrl: document.getElementById('macrodroidWebhookUrl').value,
         lastMessages: lastMessages,

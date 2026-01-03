@@ -28,10 +28,6 @@ const CONFIG = {
     return PropertiesService.getScriptProperties().getProperty('USER_LINE_ID') || "NOT_SET";
   },
 
-  get KEYMAN_LINE_ID() {
-    return PropertiesService.getScriptProperties().getProperty('KEYMAN_LINE_ID') || "TRUSTED_PERSON_LINE_ID";
-  },
-
   // --- External Services ---
   get MACRODROID_WEBHOOK_URL() {
     return PropertiesService.getScriptProperties().getProperty('MACRODROID_WEBHOOK_URL') || "https://trigger.macrodroid.com/YOUR_ID/doron_trigger";

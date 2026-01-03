@@ -47,7 +47,10 @@ function onFormSubmit(e) {
   // 1. Send Survival Check to the user via LINE
   sendSurvivalCheck();
 
-  // 2. Set the 24-hour timer
+  // 2. Notify Keyman that the process has started
+  notifyKeyman("システムが正常に起動しました。本人へ生存確認を送信しました。24時間以内に反応がない場合は実行フェーズに移ります。");
+
+  // 3. Set the 24-hour timer
   setExecutionTimer();
   
   console.log("Doron triggered. 24h timer started.");
@@ -71,6 +74,21 @@ function doPost(e) {
       replyToUser(event.replyToken, "🛑 緊急停止を受け付けました。処理を中断します。");
       notifyKeyman("本人による生存確認が取れたため、処理を中断しました。");
     }
+  }
+
+  // Handle messages (e.g., getting IDs)
+  if (event.type === 'message' && event.message.type === 'text') {
+    const text = event.message.text.trim().toLowerCase();
+    if (text === 'id') {
+      const sourceId = event.source.groupId || event.source.userId;
+      const typeStr = event.source.type === 'group' ? "この【グループID】" : "あなたの【ユーザーID】";
+      replyToUser(event.replyToken, typeStr + "は以下の通りです。設定画面に貼り付けてください。\n\n" + sourceId);
+    }
+  }
+
+  // Handle join events (Greetings)
+  if (event.type === 'join') {
+    replyToUser(event.replyToken, "👻 Doronシステムです。招待ありがとうございます！\nこのグループで生存確認・緊急通知を行う場合は、メッセージで「ID」と送って表示されるIDをシステムに設定してください。");
   }
 
   return ContentService.createTextOutput(JSON.stringify({ content: 'ok' }))

@@ -46,16 +46,25 @@ function replyToUser(replyToken, text) {
 }
 
 /**
- * Notifies the keyman (emergency contact).
+ * Notifies all recipients (Keymen) about system status changes.
  */
 function notifyKeyman(text) {
-  const url = 'https://api.line.me/v2/bot/message/push';
-  const payload = {
-    to: CONFIG.KEYMAN_LINE_ID,
-    messages: [{ type: 'text', text: text }]
-  };
-
-  fetchLineApi(url, payload);
+  CONFIG.LAST_MESSAGES.forEach(msg => {
+    if (msg.type === "LINE") {
+      const url = 'https://api.line.me/v2/bot/message/push';
+      const payload = {
+        to: msg.id,
+        messages: [{ type: 'text', text: text }]
+      };
+      fetchLineApi(url, payload);
+    } else if (msg.type === "EMAIL") {
+      MailApp.sendEmail({
+        to: msg.id,
+        subject: "【Doronシステム】ステータス通知",
+        body: text
+      });
+    }
+  });
 }
 
 /**

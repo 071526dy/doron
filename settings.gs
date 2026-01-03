@@ -10,7 +10,6 @@ function saveSettings(data) {
   const props = PropertiesService.getScriptProperties();
   
   if (data.passkey) props.setProperty('PASSKEY', data.passkey);
-  if (data.keymanLineId) props.setProperty('KEYMAN_LINE_ID', data.keymanLineId);
   if (data.gracePeriodHours) props.setProperty('GRACE_PERIOD_HOURS', data.gracePeriodHours);
   if (data.macrodroidWebhookUrl) props.setProperty('MACRODROID_WEBHOOK_URL', data.macrodroidWebhookUrl);
   if (data.lastMessages) props.setProperty('LAST_MESSAGES', JSON.stringify(data.lastMessages));
@@ -29,7 +28,6 @@ function saveSettings(data) {
 function getSettings() {
   return {
     passkey: CONFIG.PASSKEY,
-    keymanLineId: CONFIG.KEYMAN_LINE_ID,
     gracePeriodHours: parseInt(PropertiesService.getScriptProperties().getProperty('GRACE_PERIOD_HOURS')) || 24,
     macrodroidWebhookUrl: CONFIG.MACRODROID_WEBHOOK_URL,
     lastMessages: CONFIG.LAST_MESSAGES,
