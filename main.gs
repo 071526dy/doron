@@ -11,6 +11,16 @@ function doGet(e) {
     return handleAuthCallback(e.parameter.code);
   }
 
+  // Check session validity
+  const sessionToken = e.parameter.session;
+  if (!isValidSession(sessionToken)) {
+    // Show login page
+    return showLoginPage();
+  }
+
+  // Cleanup stale placeholders
+  fixPlaceholderProperties();
+
   // Check if redirection from login came back
   const status = e.parameter.status || "";
 
@@ -18,6 +28,7 @@ function doGet(e) {
   const template = HtmlService.createTemplateFromFile('index');
   template.config = getSettings();
   template.statusMessage = status === 'success' ? 'LINE連携が完了しました。' : '';
+  template.sessionToken = sessionToken; // Pass session token to page
 
   return template.evaluate()
     .setTitle('Doron System Setup')
@@ -136,4 +147,41 @@ function executeDoron() {
   sendLastMessagesToAll();
   
   console.log("Doron sequence complete.");
+}
+
+/**
+ * Automatically cleans up any properties that still have placeholder values.
+ */
+function fixPlaceholderProperties() {
+  const props = PropertiesService.getScriptProperties();
+  const keys = ['LINE_CLIENT_ID', 'LINE_CLIENT_SECRET', 'LINE_ACCESS_TOKEN'];
+  keys.forEach(key => {
+    const val = props.getProperty(key);
+    if (val && val.includes("YOUR_")) {
+      props.deleteProperty(key);
+    }
+  });
+}
+
+/**
+ * Shows the login page
+ */
+function showLoginPage() {
+  const props = PropertiesService.getScriptProperties();
+  const userEmail = Session.getActiveUser().getEmail();
+  const lockedAccount = props.getProperty('LOCKED_ACCOUNT');
+  const isFirstTime = !props.getProperty('ADMIN_PASSWORD');
+  const accountMismatch = lockedAccount && lockedAccount !== userEmail;
+  
+  const template = HtmlService.createTemplateFromFile('login');
+  template.userEmail = userEmail;
+  template.lockedAccount = lockedAccount || '';
+  template.isFirstTime = isFirstTime;
+  template.accountMismatch = accountMismatch;
+  template.scriptUrl = ScriptApp.getService().getUrl();
+  
+  return template.evaluate()
+    .setTitle('Doron System - Login')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }

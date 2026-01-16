@@ -1,0 +1,8 @@
+Found 7 deployments.
+- AKfycbyIyp9LeHd4G6Kwo2MGePvmf1EKP2yBcOm9-O4YKhU6 @HEAD 
+- AKfycbzSjGI0m_qt0sioRoNonfsHenGzOmU9yNS4HS0m6bavvmZg1vl_8GUf5UsaaNHXKccT1Q @16 - Added emergency auto-login helper
+- AKfycbzh3fdy7GpEtAVKO08GSeYAhGKekvWExvX0UZXEa8-z_WnCU7fxjlU8xv0Lpx0akFQ9Ww @2 
+- AKfycbwsm09y1YO2PGn3mEIgnciwYU2J94eN6SdiqD6RYp6ykTYsSN708SUFxyT6XLswKds4lQ @5 - v5 - Forced hardcoded IDs and cleanup
+- AKfycbyl5VYs1qKs0EulbKapkdBCYl93cdREQkdQnHB63_yu3EmQzvxVVxigqbBIFcSg6oM2uw @4 - v4 - Added validation and dynamic login
+- AKfycbxzbFULoRyzVROWjjYdpNJr5evyM9a2HCUpQXDol_zRla0MQBOUS4G8JNn07p_wcF6j @6 - v6 - Improved redirect logic
+- AKfycbxS4YO-9oR6o29ZOsOVnk6OdUZ_Hr6flpnbg5OrCwhvBTEj63PVF4fhjtq2a1JkPtsC1Q @3 - Initial Deploy for System Test

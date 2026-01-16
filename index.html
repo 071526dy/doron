@@ -277,8 +277,16 @@
 
   <div class="container">
     <header>
-      <h1>👻 Doron <span>System</span></h1>
-      <p class="subtitle">生存確認および遺言自動化システムのセットアップ</p>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h1>👻 Doron <span>System</span></h1>
+          <p class="subtitle">生存確認および遺言自動化システムのセットアップ</p>
+        </div>
+        <button onclick="handleLogout()" class="btn btn-outline"
+          style="width: auto; padding: 0.5rem 1rem; font-size: 0.85rem;">
+          🚪 ログアウト
+        </button>
+      </div>
     </header>
 
     <? if (statusMessage) { ?>
@@ -291,14 +299,18 @@
     <section>
       <h2>👤 アカウント情報</h2>
       <div class="grid">
-        <div class="info-box">
-          <div>
+        <div class="info-box" style="justify-content: space-between; align-items: center; display: flex;">
+          <div style="flex: 1;">
             <div class="info-label">Google アカウント</div>
             <div class="info-value">
               <?= config.userEmail ?>
             </div>
           </div>
-          <span class="badge badge-success">認証済み</span>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <span class="badge badge-success">認証済み</span>
+            <button onclick="handleChangeGoogleAccount()" class="btn btn-outline btn-small"
+              style="padding: 4px 10px; font-size: 0.75rem; width: auto; min-width: 60px;">変更</button>
+          </div>
         </div>
         <div class="info-box">
           <div>
@@ -308,8 +320,8 @@
             </div>
           </div>
           <? if (config.userLineId === 'NOT_SET') { ?>
-          <a href="<?= getLoginUrl() ?>" class="btn btn-primary btn-small"
-            style="padding: 6px 14px; font-size: 0.8rem;">連携する</a>
+          <button onclick="handleLogin()" class="btn btn-primary btn-small"
+            style="padding: 6px 14px; font-size: 0.8rem;">連携する</button>
           <? } else { ?>
           <span class="badge badge-success">連携済み</span>
           <? } ?>
@@ -363,16 +375,26 @@
     <!-- 5. Advanced (API Keys) -->
     <section>
       <details>
-        <summary style="cursor: pointer; color: var(--text-muted); font-size: 0.8rem;">詳細設定 (APIキー等)</summary>
+        <summary style="cursor: pointer; color: var(--text-muted); font-size: 0.8rem;">詳細設定 (APIキー等 - 必須)</summary>
         <div style="padding-top: 1rem;">
+          <div
+            style="background: rgba(56, 189, 248, 0.1); border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; border: 1px solid rgba(56, 189, 248, 0.2);">
+            <p style="margin: 0; font-size: 0.85rem; color: var(--accent);">
+              💡 <b>どこで確認できますか？</b><br>
+              <a href="https://developers.line.biz/console/" target="_blank"
+                style="color: white; text-decoration: underline;">LINE Developers Console</a> から各チャネル（Messaging API /
+              LINE Login）の基本情報を確認してください。
+            </p>
+          </div>
           <div class="form-group">
-            <label>LINE Channel Access Token</label>
-            <input type="password" id="lineAccessToken" value="<?= config.lineAccessToken ?>">
+            <label>LINE Channel Access Token (Messaging API)</label>
+            <input type="password" id="lineAccessToken" value="<?= config.lineAccessToken ?>"
+              placeholder="eyJhbGciOiJIUzI1NiJ9...">
           </div>
           <div class="grid">
             <div class="form-group">
-              <label>LINE Login Client ID</label>
-              <input type="text" id="lineClientId" value="<?= config.lineClientId ?>">
+              <label>LINE Login Client ID (Channel ID)</label>
+              <input type="text" id="lineClientId" value="<?= config.lineClientId ?>" placeholder="例: 1234567890">
             </div>
             <div class="form-group">
               <label>LINE Login Client Secret</label>
@@ -381,6 +403,32 @@
           </div>
         </div>
       </details>
+    </section>
+
+    <!-- 6. Test Operations -->
+    <section>
+      <h2 style="color: #fbbf24;">🧪 動作テスト (安全確認)</h2>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">
+        保存済みの設定が正しく動くか、実際に他人に通知を送らずにテストできます。
+      </p>
+      <div class="grid">
+        <div class="form-group">
+          <button class="btn btn-outline" style="width: 100%;" onclick="runTest('verifyLineConnection')">
+            <span>📱</span> LINE連携テスト
+          </button>
+        </div>
+        <div class="form-group">
+          <button class="btn btn-outline" style="width: 100%;" onclick="runTest('simulateEmergencyTrigger')">
+            <span>🚨</span> 起動シミュレーション
+          </button>
+        </div>
+        <div class="form-group">
+          <button class="btn btn-outline" style="width: 100%;" onclick="runTest('simulateLastMessages')">
+            <span>📧</span> 遺言プレビュー送信
+          </button>
+        </div>
+      </div>
+      <div id="test-result" style="margin-top: 1rem; font-size: 0.85rem; color: #4ade80; display: none;"></div>
     </section>
 
     <div class="footer-actions">
@@ -429,7 +477,7 @@
     // Initialize with existing messages
     initialMessages.forEach(msg => addMessageRow(msg));
 
-    function handleSave() {
+    function handleSave(callback) {
       const saveBtn = document.getElementById('save-btn');
       saveBtn.disabled = true;
       saveBtn.innerText = "保存中...";
@@ -457,6 +505,7 @@
           showToast(res.message);
           saveBtn.disabled = false;
           saveBtn.innerHTML = '<span>💾</span> 設定を保存して適用する';
+          if (callback) callback();
         })
         .withFailureHandler((err) => {
           alert("エラーが発生しました: " + err.message);
@@ -473,6 +522,64 @@
       setTimeout(() => {
         toast.style.display = 'none';
       }, 3000);
+    }
+
+    function runTest(functionName) {
+      const resultDiv = document.getElementById('test-result');
+      resultDiv.style.display = 'block';
+      resultDiv.style.color = '#94a3b8';
+      resultDiv.innerText = 'テスト実行中...';
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          resultDiv.innerText = res.message;
+          resultDiv.style.color = res.success ? '#4ade80' : '#ef4444';
+          showToast("テストを完了しました");
+        })
+        .withFailureHandler((err) => {
+          resultDiv.innerText = "エラー: " + err.message;
+          resultDiv.style.color = '#ef4444';
+        })[functionName]();
+    }
+
+    function handleLogin() {
+      showToast("LINE認証画面を準備中...");
+      google.script.run
+        .withSuccessHandler((url) => {
+          console.log("Redirecting to: " + url);
+          window.top.location.replace(url);
+        })
+        .withFailureHandler((err) => {
+          alert("認証URLの取得に失敗しました: " + err.message);
+        })
+        .getLoginUrl();
+    }
+
+    function handleLogout() {
+      if (confirm("ログアウトしますか？")) {
+        google.script.run
+          .withSuccessHandler((result) => {
+            window.top.location.href = result.redirectUrl;
+          })
+          .withFailureHandler((err) => {
+            alert("ログアウトに失敗しました: " + err.message);
+          })
+          .logout();
+      }
+    }
+
+    function handleChangeGoogleAccount() {
+      if (confirm("Googleアカウントを変更するには一度ログアウトします。\nよろしいですか？")) {
+        google.script.run
+          .withSuccessHandler((result) => {
+            // ログアウト後にログイン画面へ飛ばす。そこにある「アカウント変更」ボタンを使用してもらう仕組み
+            window.top.location.href = result.redirectUrl;
+          })
+          .withFailureHandler((err) => {
+            alert("処理中にエラーが発生しました: " + err.message);
+          })
+          .logout();
+      }
     }
   </script>
 </body>

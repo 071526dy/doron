@@ -17,10 +17,10 @@ const CONFIG = {
   
   // --- LINE Login ---
   get LINE_CLIENT_ID() {
-    return PropertiesService.getScriptProperties().getProperty('LINE_CLIENT_ID') || "YOUR_LINE_LOGIN_CHANNEL_ID";
+    return "2008817979";
   },
   get LINE_CLIENT_SECRET() {
-    return PropertiesService.getScriptProperties().getProperty('LINE_CLIENT_SECRET') || "YOUR_LINE_LOGIN_CHANNEL_SECRET";
+    return "c38882b5dcabc4ec00e030993b3260ee";
   },
 
   // USER_LINE_ID set via LINE Login
