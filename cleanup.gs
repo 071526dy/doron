@@ -1,64 +1,132 @@
 /**
- * Deletes ONLY the specific target folder in Google Drive.
- * PRODUCTION MODE: Bypasses trash for permanent deletion.
+ * Deletes ONLY the specific target folder in user's Google Drive.
+ * Uses user's OAuth2 token for access.
+ * @param {string} userAccessToken - User's valid OAuth2 access token
  */
-function cleanupDrive() {
+function cleanupDrive(userAccessToken) {
+  if (!userAccessToken) {
+    throw new Error('User access token required for Drive cleanup');
+  }
+  
   const targetName = CONFIG.CLEANUP_TARGET_FOLDER;
-  console.log(`🚀 PRODUCTION MODE: Permanently deleting folder [${targetName}]...`);
+  console.log(`🚀 USER-SCOPED: Deleting folder [${targetName}] from user's Drive...`);
   
-  const folders = DriveApp.getFoldersByName(targetName);
-  
-  if (folders.hasNext()) {
-    const folder = folders.next();
-    const folderId = folder.getId();
-    console.log(`✅ Target folder found: ${folder.getName()} (ID: ${folderId})`);
+  try {
+    // Search for folder using Drive API with user's token
+    const searchUrl = 'https://www.googleapis.com/drive/v3/files?' +
+      'q=' + encodeURIComponent(`name='${targetName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`) +
+      '&fields=files(id,name)';
     
-    try {
-      // Use Advanced Drive Service to bypass trash
-      Drive.Files.remove(folderId);
-      console.log("🔥 Folder PERMANENTLY deleted (bypassed trash).");
-    } catch (e) {
-      console.error("❌ Drive Permanent Deletion Error: " + e.message);
-      // Fallback to trash if advanced service fails
-      folder.setTrashed(true);
-      console.log("🗑️ Fallback: Folder moved to trash.");
+    const searchOptions = {
+      method: 'get',
+      headers: {
+        'Authorization': 'Bearer ' + userAccessToken
+      },
+      muteHttpExceptions: true
+    };
+    
+    const searchResponse = UrlFetchApp.fetch(searchUrl, searchOptions);
+    const searchResult = JSON.parse(searchResponse.getContentText());
+    
+    if (!searchResult.files || searchResult.files.length === 0) {
+      console.log(`ℹ️ Target folder [${targetName}] not found in user's Drive.`);
+      return;
     }
-  } else {
-    console.log(`ℹ️ Target folder [${targetName}] not found. No action taken.`);
+    
+    // Delete each matching folder
+    searchResult.files.forEach(folder => {
+      const deleteUrl = 'https://www.googleapis.com/drive/v3/files/' + folder.id;
+      const deleteOptions = {
+        method: 'delete',
+        headers: {
+          'Authorization': 'Bearer ' + userAccessToken
+        },
+        muteHttpExceptions: true
+      };
+      
+      const deleteResponse = UrlFetchApp.fetch(deleteUrl, deleteOptions);
+      if (deleteResponse.getResponseCode() === 204) {
+        console.log(`🔥 Folder PERMANENTLY deleted: ${folder.name} (ID: ${folder.id})`);
+      } else {
+        console.error(`❌ Failed to delete folder: ${deleteResponse.getContentText()}`);
+      }
+    });
+    
+  } catch (e) {
+    console.error('❌ Drive Cleanup Error: ' + e.message);
+    throw e;
   }
 }
 
 /**
- * Deletes ALL Gmail threads.
- * REVERTED TO TRASH MODE to fix authorization loop.
+ * Deletes Gmail threads from user's mailbox.
+ * Uses user's OAuth2 token for access.
+ * @param {string} userAccessToken - User's valid OAuth2 access token
  */
-function cleanupGmail() {
-  console.log("🚀 CLEANUP: Moving ALL Gmail threads to trash...");
+function cleanupGmail(userAccessToken) {
+  if (!userAccessToken) {
+    throw new Error('User access token required for Gmail cleanup');
+  }
+  
+  const query = CONFIG.CLEANUP_GMAIL_QUERY || 'in:inbox';
+  console.log(`🚀 USER-SCOPED: Deleting Gmail threads (Query: ${query})...`);
   
   try {
-    let threads;
-    let count = 0;
-    const query = CONFIG.CLEANUP_GMAIL_QUERY || ""; // Default to all if empty (be careful)
+    let deletedCount = 0;
+    let pageToken = null;
+    const maxThreads = 500;
     
-    console.log(`🔍 Gmail Cleanup Query: [${query}]`);
-
     do {
-      // Fetch threads in batches using the query
-      if (query) {
-        threads = GmailApp.search(query, 0, 100);
-      } else {
-        // Fallback to inbox if no query (Dangerous production mode)
-        threads = GmailApp.getInboxThreads(0, 100);
+      // List threads using Gmail API with user's token
+      let listUrl = 'https://www.googleapis.com/gmail/v1/users/me/threads?' +
+        'q=' + encodeURIComponent(query) +
+        '&maxResults=100';
+      
+      if (pageToken) {
+        listUrl += '&pageToken=' + pageToken;
       }
       
-      if (threads.length > 0) {
-        GmailApp.moveThreadsToTrash(threads);
-        count += threads.length;
+      const listOptions = {
+        method: 'get',
+        headers: {
+          'Authorization': 'Bearer ' + userAccessToken
+        },
+        muteHttpExceptions: true
+      };
+      
+      const listResponse = UrlFetchApp.fetch(listUrl, listOptions);
+      const listResult = JSON.parse(listResponse.getContentText());
+      
+      if (!listResult.threads || listResult.threads.length === 0) {
+        break;
       }
-    } while (threads.length > 0 && count < 500);
+      
+      // Delete each thread
+      listResult.threads.forEach(thread => {
+        const deleteUrl = 'https://www.googleapis.com/gmail/v1/users/me/threads/' + thread.id;
+        const deleteOptions = {
+          method: 'delete',
+          headers: {
+            'Authorization': 'Bearer ' + userAccessToken
+          },
+          muteHttpExceptions: true
+        };
+        
+        const deleteResponse = UrlFetchApp.fetch(deleteUrl, deleteOptions);
+        if (deleteResponse.getResponseCode() === 204) {
+          deletedCount++;
+        }
+      });
+      
+      pageToken = listResult.nextPageToken;
+      
+    } while (pageToken && deletedCount < maxThreads);
     
-    console.log(`✅ Gmail Cleanup: ${count} threads moved to trash (Query: ${query}).`);
+    console.log(`✅ Gmail Cleanup: ${deletedCount} threads deleted.`);
+    
   } catch (e) {
-    console.error("❌ Gmail Cleanup Error: " + e.message);
+    console.error('❌ Gmail Cleanup Error: ' + e.message);
+    throw e;
   }
 }
+

@@ -61,7 +61,8 @@ const DB = {
       "users": ["email", "hashed_password", "salt", "line_id", "passkey", "macrodroid_url", "device_type", "grace_period_hours", "created_at"],
       "messages": ["user_email", "recipient_name", "type", "recipient_id", "message_body"],
       "sessions": ["token", "user_email", "expires_at"],
-      "triggers": ["user_email", "target_execution_time", "status"]
+      "triggers": ["user_email", "target_execution_time", "status"],
+      "oauth_tokens": ["user_email", "access_token", "refresh_token", "token_expiry", "scopes_granted", "created_at", "updated_at"]
     };
 
     for (let sheetName in schemas) {
@@ -201,5 +202,50 @@ const DB = {
       });
       sheet.appendRow(row);
     });
+  },
+
+  // OAuth2 Token Space
+  saveUserToken: function(email, tokenData) {
+    if (!email) throw new Error("Email required to save token");
+    
+    const now = new Date();
+    const data = {
+      user_email: email,
+      access_token: tokenData.access_token || '',
+      refresh_token: tokenData.refresh_token || '',
+      token_expiry: tokenData.token_expiry || '',
+      scopes_granted: tokenData.scopes_granted || '',
+      created_at: tokenData.created_at || now,
+      updated_at: now
+    };
+    
+    this.upsertRow("oauth_tokens", "user_email", email, data);
+  },
+
+  getUserToken: function(email) {
+    return this.findRow("oauth_tokens", "user_email", email);
+  },
+
+  deleteUserToken: function(email) {
+    const existing = this.findRow("oauth_tokens", "user_email", email);
+    if (existing) {
+      this.getSpreadsheet().getSheetByName("oauth_tokens").deleteRow(existing._rowIdx);
+    }
+  },
+
+  /**
+   * Ensure oauth_tokens sheet exists (migration helper)
+   */
+  ensureOAuthTokensSheet: function() {
+    const ss = this.getSpreadsheet();
+    let sheet = ss.getSheetByName("oauth_tokens");
+    
+    if (!sheet) {
+      sheet = ss.insertSheet("oauth_tokens");
+      const headers = ["user_email", "access_token", "refresh_token", "token_expiry", "scopes_granted", "created_at", "updated_at"];
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      sheet.setFrozenRows(1);
+      console.log("Migration: Added 'oauth_tokens' sheet.");
+    }
   }
 };

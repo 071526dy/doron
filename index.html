@@ -605,6 +605,31 @@
       </div>
     </section>
 
+    <!-- 1.5 Google Data Access Authorization -->
+    <section>
+      <h2>🔐 Google データアクセス許可</h2>
+      <div class="info-box">
+        <div class="info-content" style="width: 100%;">
+          <span class="info-label">データ削除の権限</span>
+          <span class="info-value" id="oauth-status-text" style="color: var(--text-muted);">未認証</span>
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.75rem; line-height: 1.4;">
+            緊急時にあなたのGoogleドライブとGmailを削除するには、事前にアクセス許可が必要です。<br>
+            <span style="color: var(--accent);">※許可しない場合、データ削除機能は動作しません。</span>
+          </p>
+        </div>
+        <div class="info-actions" style="margin-top: 1rem; display: flex; gap: 0.75rem;">
+          <button onclick="handleAuthorizeGoogle()" class="btn btn-primary" id="oauth-authorize-btn"
+            style="padding: 8px 16px; font-size: 0.85rem; width: auto;">
+            🔓 アクセスを許可
+          </button>
+          <button onclick="handleRevokeGoogle()" class="btn btn-outline" id="oauth-revoke-btn"
+            style="padding: 8px 16px; font-size: 0.85rem; width: auto; color: var(--danger); border-color: rgba(239, 68, 68, 0.3); display: none;">
+            🔒 許可を取り消す
+          </button>
+        </div>
+      </div>
+    </section>
+
     <!-- 2. Core Trigger Settings -->
     <section>
       <h2>🚨 緊急トリガー設定</h2>
@@ -931,6 +956,12 @@
       list.innerHTML = '';
       (config.lastMessages || []).forEach(msg => addMessageRow(msg));
       if (list.children.length === 0) addMessageRow();
+
+      // Check OAuth2 authorization status
+      updateOAuth2Status();
+
+      // Check if returning from OAuth2 callback
+      checkOAuthCallback();
     }
 
     // 4. Diagnostic UI
@@ -1059,6 +1090,64 @@
       } else {
         input.type = 'password';
         btn.innerText = '👁️';
+      }
+    }
+
+    // OAuth2 Authorization Handlers
+    function handleAuthorizeGoogle() {
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res.success) {
+            // Redirect to Google authorization page
+            window.top.location.href = res.authUrl;
+          } else {
+            alert('エラー: ' + res.message);
+          }
+        })
+        .requestOAuth2Authorization(currentSessionToken);
+    }
+
+    function handleRevokeGoogle() {
+      if (confirm("Googleアクセス許可を取り消しますか?\n取り消すと、緊急時のデータ削除機能が動作しなくなります。")) {
+        google.script.run
+          .withSuccessHandler((res) => {
+            showToast(res.message);
+            updateOAuth2Status();
+          })
+          .revokeOAuth2Authorization(currentSessionToken);
+      }
+    }
+
+    function updateOAuth2Status() {
+      google.script.run
+        .withSuccessHandler((status) => {
+          const statusText = document.getElementById('oauth-status-text');
+          const authorizeBtn = document.getElementById('oauth-authorize-btn');
+          const revokeBtn = document.getElementById('oauth-revoke-btn');
+
+          if (status.authorized) {
+            statusText.innerText = '✅ 認証済み';
+            statusText.style.color = 'var(--success)';
+            authorizeBtn.style.display = 'none';
+            revokeBtn.style.display = 'inline-block';
+          } else {
+            statusText.innerText = '❌ 未認証';
+            statusText.style.color = 'var(--text-muted)';
+            authorizeBtn.style.display = 'inline-block';
+            revokeBtn.style.display = 'none';
+          }
+        })
+        .getOAuth2Status(currentSessionToken);
+    }
+
+    // Check for OAuth success callback
+    function checkOAuthCallback() {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('oauth') === 'success') {
+        showToast('✅ Googleアクセス許可が完了しました');
+        // Clean URL
+        window.history.replaceState({}, document.title, window.location.pathname + '?session=' + currentSessionToken);
+        updateOAuth2Status();
       }
     }
   </script>

@@ -17,9 +17,23 @@ function doGet(e) {
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
     }
 
-    // 1. Handle OAuth callback (LINE Authorize)
+    // 1. Handle OAuth callbacks
     if (e && e.parameter && e.parameter.code) {
-      return handleAuthCallback(e.parameter.code, e.parameter.state);
+      const state = e.parameter.state;
+      
+      // Check if this is a Google OAuth2 callback (state contains JSON)
+      try {
+        const stateData = JSON.parse(decodeURIComponent(state));
+        if (stateData.email && stateData.session) {
+          // Google OAuth2 callback
+          return handleOAuth2Callback(e.parameter.code, state);
+        }
+      } catch (parseError) {
+        // Not JSON, assume LINE callback
+      }
+      
+      // LINE OAuth callback
+      return handleAuthCallback(e.parameter.code, state);
     }
 
     // 2. Serving SPA (index.html)
@@ -169,11 +183,28 @@ function executeByEmail(userEmail) {
     try { UrlFetchApp.fetch(user.macrodroid_url); } catch(e) { console.error("Wipe failed: " + e.message); }
   }
   
-  // 3. Optional Drive/Gmail cleanup
-  // (In service mode, this requires user-scoped OAuth tokens stored in DB)
-  // For now, we perform the actions authorized by the developer deployment if scopes match.
-  try { cleanupDrive(); } catch(e) { console.error("Drive Wipe Failed: " + e.message); }
-  try { cleanupGmail(); } catch(e) { console.error("Gmail Wipe Failed: " + e.message); }
+  // 3. User-scoped Drive/Gmail cleanup
+  try {
+    // Check if user has authorized OAuth2 access
+    if (isUserAuthorized(userEmail)) {
+      console.log('✅ User has OAuth2 authorization, proceeding with cleanup...');
+      
+      // Get valid access token (auto-refreshes if needed)
+      const accessToken = getValidAccessToken(userEmail);
+      
+      // Perform cleanup with user's token
+      cleanupDrive(accessToken);
+      cleanupGmail(accessToken);
+      
+      console.log('✅ User-scoped cleanup completed');
+    } else {
+      console.warn('⚠️ User has not authorized OAuth2 access. Skipping Drive/Gmail cleanup.');
+      console.log('User must authorize access via the settings page.');
+    }
+  } catch(e) {
+    console.error("❌ Cleanup failed: " + e.message);
+    // Don't throw - allow other operations to complete
+  }
 }
 
 /**

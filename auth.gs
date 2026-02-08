@@ -168,6 +168,79 @@ function logout() {
   return { success: true, redirectUrl: getAppUrl() };
 }
 
+// ============================================
+// 1.5 OAuth2 User Authorization
+// ============================================
+
+/**
+ * Get OAuth2 authorization URL for user
+ */
+function requestOAuth2Authorization(sessionToken) {
+  const isValid = validateAdminSession(sessionToken);
+  if (!isValid) {
+    return { success: false, message: 'セッションが無効です' };
+  }
+  
+  const session = DB.getSession(sessionToken);
+  const userEmail = session.user_email;
+  
+  try {
+    const authUrl = getOAuth2AuthorizationUrl(userEmail, sessionToken);
+    return { success: true, authUrl: authUrl };
+  } catch (e) {
+    console.error('OAuth2 authorization URL generation failed: ' + e.message);
+    return { success: false, message: 'OAuth2設定エラー: ' + e.message };
+  }
+}
+
+/**
+ * Revoke user's OAuth2 authorization
+ */
+function revokeOAuth2Authorization(sessionToken) {
+  const isValid = validateAdminSession(sessionToken);
+  if (!isValid) {
+    return { success: false, message: 'セッションが無効です' };
+  }
+  
+  const session = DB.getSession(sessionToken);
+  const userEmail = session.user_email;
+  
+  try {
+    const tokenData = DB.getUserToken(userEmail);
+    if (tokenData && tokenData.access_token) {
+      revokeOAuth2Token(tokenData.access_token);
+    }
+    
+    DB.deleteUserToken(userEmail);
+    return { success: true, message: 'Google連携を解除しました' };
+  } catch (e) {
+    console.error('OAuth2 revocation failed: ' + e.message);
+    return { success: false, message: '解除に失敗しました: ' + e.message };
+  }
+}
+
+/**
+ * Get user's OAuth2 authorization status
+ */
+function getOAuth2Status(sessionToken) {
+  const isValid = validateAdminSession(sessionToken);
+  if (!isValid) {
+    return { authorized: false };
+  }
+  
+  const session = DB.getSession(sessionToken);
+  const userEmail = session.user_email;
+  
+  const isAuthorized = isUserAuthorized(userEmail);
+  const tokenData = isAuthorized ? DB.getUserToken(userEmail) : null;
+  
+  return {
+    authorized: isAuthorized,
+    scopes: tokenData ? tokenData.scopes_granted : null,
+    grantedAt: tokenData ? tokenData.created_at : null
+  };
+}
+
 
 // ============================================
 // 2. LINE Login Helpers (Stateless / Session params)
