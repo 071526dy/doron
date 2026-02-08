@@ -253,12 +253,26 @@
 
             <div class="account-info">
                 <div class="account-label">ログイン中のGoogleアカウント</div>
-                <div class="account-email" id="current-email">
-                    <?= userEmail || '(未取得 - 再読み込みしてください)' ?>
+                <div id="account-display-area">
+                    <? if (userEmail && userEmail !== '(未取得 - 再読み込みしてください)') { ?>
+                    <div class="account-email" id="current-email">
+                        <?= userEmail ?>
+                    </div>
+                    <a href="<?= switchAccountUrl ?>" target="_top" class="btn-switch-account"
+                        style="display: flex; align-items: center; justify-content: center; text-decoration: none; gap: 0.5rem; background: rgba(255, 255, 255, 0.05);">
+                        🔄 別のGoogleアカウントでログイン
+                    </a>
+                    <? } else { ?>
+                    <div class="account-email" style="color: var(--error);">（未ログイン）</div>
+                    <a href="<?= loginUrl ?>" target="_top" class="btn-switch-account"
+                        style="display: block; text-decoration: none; background: var(--accent); color: var(--bg-dark); font-weight: 600; margin-top: 1rem;">
+                        🔐 Googleアカウントでログイン
+                    </a>
+                    <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.5rem;">
+                        ※データの消去対象を特定するため、Googleログインが必要です。
+                    </p>
+                    <? } ?>
                 </div>
-                <button onclick="switchAccount()" class="btn-switch-account" title="Googleアカウントのログアウト画面を開きます">
-                    🔄 別のGoogleアカウントでログイン
-                </button>
                 <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.5rem; line-height: 1.3;">
                     ※メールが変わらない場合は、Chromeの「プロファイル」が別のアカウントになっていないか確認してください。
                 </div>
@@ -274,19 +288,31 @@
 
             <div id="mismatch-banner" class="warning-banner <?= accountMismatch ? 'show' : '' ?>"
                 style="background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3); color: #7dd3fc;">
-                ℹ️ アカウントの切り替え<br>
-                登録済み: <span id="locked-email-display">
-                    <?= lockedAccount ?>
-                </span><br>
-                現在: <span id="current-email-display">
-                    <?= userEmail ?>
-                </span><br>
-                パスワードを入力すると、このアカウントを新しく登録してログインできます。
+                ℹ️ システム登録の切り替え<br>
+                別のGoogleアカウントが登録されています。<br>
+                パスワードを入力すると、現在のアカウント（
+                <?= userEmail ?>）を新しく登録してログインできます。
             </div>
 
             <div class="error-message" id="error-message">
                 パスワードが正しくありません
             </div>
+
+            <div id="diag-box"
+                style="margin-top:2rem; padding:1rem; background:rgba(0,0,0,0.3); border-radius:12px; font-size:0.75rem; color:var(--text-muted); display:none;">
+                <h4 style="margin:0 0 0.5rem 0; color:var(--accent);">🔍 システム診断</h4>
+                <div id="diag-content"></div>
+                <div style="margin-top:1rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:0.5rem;">
+                    <b>推奨URL:</b><br>
+                    <a id="canonical-link" href="#" target="_top"
+                        style="color:var(--accent); word-break:break-all;"></a>
+                    <p style="margin:0.25rem 0 0 0;">※ドメイン制限のないURLを使用すると、白い画面が解消されることがあります。</p>
+                </div>
+            </div>
+            <button onclick="toggleDiag()"
+                style="margin-top:1rem; background:transparent; border:none; color:var(--text-muted); font-size:0.75rem; cursor:pointer; width:100%; text-decoration:underline;">
+                [+] 接続トラブルの診断情報を表示
+            </button>
 
             <form onsubmit="handleLogin(event)">
                 <div class="form-group">
@@ -321,6 +347,38 @@
     </div>
 
     <script>
+        /**
+         * Robust account switching via redirection.
+         */
+        function switchAccount() {
+            try {
+                console.log('Switch account initiated');
+                const scriptUrl = '<?= scriptUrl ?>';
+                if (!scriptUrl || scriptUrl === 'undefined') {
+                    throw new Error('Script URL is not defined properly.');
+                }
+
+                const chooserUrl = `https://accounts.google.com/AccountChooser?continue=${encodeURIComponent(scriptUrl)}`;
+                const logoutUrl = `https://accounts.google.com/Logout?continue=${encodeURIComponent(chooserUrl)}`;
+
+                const message =
+                    '【確実なアカウント切り替え】\n\n' +
+                    '1. 「OK」を押すとGoogleのログアウト画面へ移動します。\n' +
+                    '2. 全てのアカウントからログアウトされます。\n' +
+                    '3. その後、使いたいアカウントでログインし直してください。\n' +
+                    '4. 完了すると、このDoronの画面に自動的に戻ってきます。\n\n' +
+                    'ログアウト画面へ移動しますか？';
+
+                if (confirm(message)) {
+                    console.log('Redirecting to:', logoutUrl);
+                    window.top.location.href = logoutUrl;
+                }
+            } catch (err) {
+                console.error('Switch account failed:', err);
+                alert('エラーが発生しました: ' + err.message);
+            }
+        }
+
         function handleLogin(event) {
             event.preventDefault();
 
@@ -356,49 +414,91 @@
                 .authenticateUser(password);
         }
 
-        function switchAccount() {
-            const logoutUrl = 'https://accounts.google.com/Logout';
-
-            const message =
-                '【アカウント切り替えのヒント】\n\n' +
-                '1. 「OK」を押すとGoogleのログアウト画面が開きます。\n' +
-                '2. 全てのアカウントからログアウトした後、使いたいアカウント「だけ」でログインし直すと確実です。\n' +
-                '3. 画像に出ていた「Chrome プロファイルの切り替え」が表示された場合は、プロファイルを切り替えるか、「続行」を押してください。\n\n' +
-                'ログアウト画面を開きますか？';
-
-            if (confirm(message)) {
-                window.open(logoutUrl, '_blank');
-                alert('ログアウトと再ログインが完了したら、この画面に戻ってください。アカウントが自動的に同期されます。');
-            }
-        }
-
         // Real-time account polling
         let currentEmail = '<?= userEmail ?>';
         function pollAccount() {
             google.script.run
                 .withSuccessHandler((state) => {
-                    if (state.email !== currentEmail) {
+                    if (state && state.email !== currentEmail) {
                         console.log('Account change detected:', state.email);
                         currentEmail = state.email;
 
                         // Update UI elements
-                        document.getElementById('current-email').textContent = state.email || '(未取得)';
-                        document.getElementById('current-email-display').textContent = state.email || '(未取得)';
-                        document.getElementById('locked-email-display').textContent = state.lockedAccount || '';
+                        const emailEl = document.getElementById('current-email');
+                        if (emailEl) emailEl.textContent = state.email || '(未取得)';
 
                         const mismatchBanner = document.getElementById('mismatch-banner');
-                        if (state.accountMismatch) {
-                            mismatchBanner.classList.add('show');
-                        } else {
-                            mismatchBanner.classList.remove('show');
+                        if (mismatchBanner) {
+                            if (state.accountMismatch) {
+                                mismatchBanner.innerHTML = `
+                                    ℹ️ システム登録の切り替え<br>
+                                    別のGoogleアカウントが登録されています。<br>
+                                    パスワードを入力すると、現在のアカウント（${state.email}）を新しく登録してログインできます。
+                                `;
+                                mismatchBanner.classList.add('show');
+                            } else {
+                                mismatchBanner.classList.remove('show');
+                            }
                         }
                     }
                 })
                 .getActiveUserEmail();
         }
 
-        // Start polling every 3 seconds
-        setInterval(pollAccount, 3000);
+        // Detect domain-specific URL and warn
+        window.addEventListener('DOMContentLoaded', () => {
+            const currentUrl = window.location.href;
+            if (currentUrl.includes('/a/')) {
+                const warning = document.createElement('div');
+                warning.style.background = '#ef4444';
+                warning.style.color = 'white';
+                warning.style.padding = '1rem';
+                warning.style.textAlign = 'center';
+                warning.style.fontWeight = 'bold';
+                warning.style.position = 'fixed';
+                warning.style.top = '0';
+                warning.style.left = '0';
+                warning.style.width = '100%';
+                warning.style.zIndex = '10001';
+                warning.innerHTML = '⚠️ 不適切なURLです。ドメイン制限のない推奨URLへ移動してください。' +
+                    '<br><a href="' + '<?= scriptUrl ?>' + '" ' +
+                    'target="_top" style="color:white; text-decoration:underline;">[ここをクリックして移動]</a>';
+                document.body.prepend(warning);
+            }
+        });
+
+        // Initial fetch of status for diagnostics
+        window.addEventListener('load', () => {
+            google.script.run.withSuccessHandler(res => {
+                const link = document.getElementById('canonical-link');
+                if (link && res.canonicalUrl) {
+                    link.href = res.canonicalUrl;
+                    link.innerText = res.canonicalUrl;
+                }
+                window.diagData = res;
+            }).getAuthStatus("");
+        });
+
+        function toggleDiag() {
+            const box = document.getElementById('diag-box');
+            const cont = document.getElementById('diag-content');
+            if (!box || !cont) return;
+
+            if (box.style.display === 'none') {
+                const d = window.diagData || {};
+                cont.innerHTML = `
+                    • アカウント: ${d.userEmail || '(取得不可)'}<br>
+                    • 権限状況:<br>
+                      - プロパティ: ${d.permissions?.Properties === true ? '✅OK' : '❌NG (' + (d.permissions?.Properties || 'ERROR') + ')'}<br>
+                      - Googleドライブ: ${d.permissions?.Drive === true ? '✅OK' : '❌NG'}<br>
+                      - 有効ユーザー: ${d.permissions?.EffectiveUser || '-'}<br>
+                    • セッション状況: ${d.authenticated ? '認証済み' : '未認証'}
+                `;
+                box.style.display = 'block';
+            } else {
+                box.style.display = 'none';
+            }
+        }
     </script>
 </body>
 

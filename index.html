@@ -12,10 +12,13 @@
       --primary: #06C755;
       --primary-hover: #05b34c;
       --bg-dark: #0f172a;
-      --card-bg: rgba(30, 41, 59, 0.7);
+      --card-bg: rgba(30, 41, 59, 0.6);
+      --card-border: rgba(255, 255, 255, 0.08);
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
       --accent: #38bdf8;
+      --danger: #ef4444;
+      --success: #10b981;
     }
 
     * {
@@ -38,6 +41,7 @@
       width: 100%;
       max-width: 800px;
       animation: fadeIn 0.5s ease-out;
+      padding-bottom: 5rem;
     }
 
     @keyframes fadeIn {
@@ -81,6 +85,7 @@
       padding: 2rem;
       margin-bottom: 2rem;
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+      width: 100%;
     }
 
     h2 {
@@ -95,8 +100,9 @@
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 1.5rem;
+      align-items: stretch;
     }
 
     .form-group {
@@ -133,93 +139,140 @@
       box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1);
     }
 
-    .info-box {
+    .info-box,
+    .form-card {
       background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 16px;
-      padding: 1rem;
+      padding: 1.25rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      transition: all 0.2s;
+      min-height: 100px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .info-box:hover {
+      border-color: rgba(56, 189, 248, 0.2);
+    }
+
+    .info-content {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .info-actions {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1rem;
+      gap: 0.75rem;
+      flex-shrink: 0;
+      margin-left: auto;
     }
 
     .info-label {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
     .info-value {
       font-weight: 600;
+      font-size: 0.9rem;
+      word-break: break-all;
+      line-height: 1.3;
+      color: var(--text-main);
     }
 
     .badge {
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 600;
+      padding: 0.25rem 0.75rem;
+      border-radius: 99px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
     .badge-success {
-      background: rgba(6, 199, 85, 0.2);
-      color: #4ade80;
-      border: 1px solid rgba(6, 199, 85, 0.3);
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.2);
     }
 
     .badge-warn {
-      background: rgba(245, 158, 11, 0.2);
+      background: rgba(245, 158, 11, 0.15);
       color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.3);
+      border: 1px solid rgba(245, 158, 11, 0.2);
     }
 
     .btn {
       cursor: pointer;
       border: none;
-      border-radius: 12px;
-      padding: 0.75rem 1.5rem;
+      border-radius: 14px;
+      padding: 0.75rem 1.75rem;
       font-weight: 600;
-      transition: all 0.2s;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.6rem;
       justify-content: center;
+      font-size: 0.95rem;
     }
 
     .btn-primary {
       background: var(--primary);
       color: white;
+      box-shadow: 0 4px 14px 0 rgba(6, 199, 85, 0.3);
     }
 
     .btn-primary:hover {
       background: var(--primary-hover);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(6, 199, 85, 0.4);
     }
 
     .btn-outline {
-      background: transparent;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: white;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-main);
     }
 
     .btn-outline:hover {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
     }
 
     .btn-accent {
       background: var(--accent);
       color: var(--bg-dark);
+      box-shadow: 0 4px 14px 0 rgba(56, 189, 248, 0.3);
     }
 
     .btn-accent:hover {
-      opacity: 0.9;
-      transform: translateY(-1px);
+      opacity: 0.95;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.4);
     }
 
     .message-item {
-      background: rgba(255, 255, 255, 0.03);
-      border-radius: 16px;
-      padding: 1.5rem;
-      margin-bottom: 1rem;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 1.75rem;
+      margin-bottom: 1.25rem;
       position: relative;
+      transition: border-color 0.2s;
+    }
+
+    .message-item:hover {
+      border-color: rgba(56, 189, 248, 0.15);
     }
 
     .btn-remove {
@@ -227,23 +280,29 @@
       top: 1rem;
       right: 1rem;
       color: #ef4444;
-      background: none;
-      border: none;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 8px;
       cursor: pointer;
-      padding: 5px;
-      opacity: 0.6;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
     }
 
     .btn-remove:hover {
+      background: rgba(239, 68, 68, 0.2);
       opacity: 1;
     }
 
     .footer-actions {
       display: flex;
-      justify-content: flex-end;
-      gap: 1rem;
-      margin-top: 1rem;
-      margin-bottom: 5rem;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-top: 2rem;
+      margin-bottom: 6rem;
     }
 
     #toast {
@@ -262,20 +321,244 @@
     }
 
     .status-banner {
-      background: rgba(6, 199, 85, 0.1);
-      border: 1px solid rgba(6, 199, 85, 0.3);
-      color: #4ade80;
-      padding: 1rem;
-      border-radius: 12px;
-      margin-bottom: 2rem;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      padding: 1.25rem;
+      border-radius: 18px;
+      margin-bottom: 2.5rem;
       text-align: center;
+      font-weight: 600;
+      animation: slideDown 0.4s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Device Toggle Styles */
+    .device-option {
+      cursor: pointer;
+    }
+
+    .device-option.active {
+      border-color: var(--accent) !important;
+      background: rgba(56, 189, 248, 0.1) !important;
+    }
+
+    .device-option.active .info-value {
+      color: var(--accent);
+    }
+
+    .device-option.active .selection-indicator {
+      display: block !important;
+    }
+
+    .selection-indicator {
+      display: none;
+      color: var(--accent);
+      font-weight: bold;
+    }
+
+    .device-option:hover:not(.active) {
+      background: rgba(255, 255, 255, 0.07);
+    }
+
+    .device-option .icon {
+      font-size: 1.5rem;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Checklist Styles */
+    .iphone-checklist {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 16px;
+      padding: 1.5rem;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .checklist-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .checklist-text {
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .checklist-text b {
+      display: block;
+      color: var(--text-main);
+      margin-bottom: 0.2rem;
+    }
+
+    .checklist-text span {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .btn-switch-account {
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.75rem 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      transition: all 0.2s;
+      width: 100%;
+      margin-top: 1rem;
+      cursor: pointer;
+    }
+
+    .btn-switch-account:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--accent);
+      color: var(--accent);
     }
   </style>
 </head>
 
 <body>
 
-  <div class="container">
+  <div id="heartbeat"
+    style="position:fixed; top:0; left:0; padding:5px; background:#38bdf8; color:white; z-index:10000; font-size:10px; font-weight:bold; border-bottom-right-radius:8px;">
+    v191 CANONICAL</div>
+  <script>
+    console.log("SPA index.html v191 CANONICAL - Entry point safe.");
+    window.onerror = function (msg, url, line) {
+      console.error("Browser Error: " + msg + " at " + url + ":" + line);
+      try { document.getElementById('heartbeat').innerText = 'v191 FAIL: ' + msg; } catch (e) { }
+    };
+    try {
+      document.getElementById('heartbeat').innerText = 'v191 (Armed)';
+    } catch (e) { }
+  </script>
+
+  <!-- LOGIN OVERLAY (SPA) -->
+  <div id="login-overlay"
+    style="position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); z-index:9000; display:flex; align-items:center; justify-content:center; padding:1rem;">
+    <div
+      style="width:100%; max-width:480px; background:rgba(30, 41, 59, 0.7); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.1); border-radius:24px; padding:2.5rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);">
+
+      <!-- Domain Warning Bar -->
+      <div id="domain-warning"
+        style="display:none; background:#ef4444; color:white; padding:0.75rem; border-radius:12px; margin-bottom:1.5rem; font-size:0.85rem; text-align:center; font-weight:bold;">
+        ⚠️ 不適切なドメインです。<br>
+        <a id="canonical-redirect-link" href="#" target="_top"
+          style="color:white; text-decoration:underline;">ここをクリックして推奨URLへ移動</a>
+      </div>
+
+      <div style="text-align:center; margin-bottom:2rem;">
+        <h1 style="font-size:2.5rem; margin:0; font-weight:600; letter-spacing:-1px;">👻 Doron <span>System</span></h1>
+        <p style="color:var(--text-muted); margin-top:0.5rem; font-size:0.9rem;">生存確認および遺言自動化システム</p>
+      </div>
+
+      <!-- Auth Guidance (Aggressive) -->
+      <div id="auth-guidance"
+        style="display:none; background:rgba(56, 189, 248, 0.1); border:1px solid var(--accent); border-radius:16px; padding:1.25rem; margin-bottom:2rem; animation: pulse 2s infinite;">
+        <p style="margin:0 0 0.5rem 0; color:var(--accent); font-weight:bold; font-size:0.95rem;">☝️ 対応が必要です</p>
+        <p style="margin:0; font-size:0.8rem; color:var(--text-main); line-height:1.4;">
+          ブラウザの一番上（アドレスバーのすぐ下）に青いボタンが出ていませんか？
+          <b>それをクリックして承認を完了させてください。</b>
+        </p>
+      </div>
+
+      <div id="loading-hint" style="text-align:center; margin-bottom: 2rem;">
+        <div
+          style="display:inline-block; width:20px; height:20px; border:3px solid rgba(255,255,255,0.1); border-top-color:var(--accent); border-radius:50%; animation: spin 1s linear infinite; margin-bottom:0.5rem;">
+        </div>
+        <p id="loading-text" style="color:var(--text-muted); font-size:0.85rem; margin:0;">初期化中...</p>
+      </div>
+      <style>
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        @keyframes pulse {
+
+          0%,
+          100% {
+            border-color: var(--accent);
+            box-shadow: 0 0 0px var(--accent);
+          }
+
+          50% {
+            border-color: white;
+            box-shadow: 0 0 15px var(--accent);
+          }
+        }
+      </style>
+
+      <!-- SPA Login Section -->
+      <div id="spa-login-section" style="display:none;">
+        <div id="spa-account-info"
+          style="background:rgba(0,0,0,0.2); border-radius:12px; padding:1rem; margin-bottom:1.5rem; text-align:center;">
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.5rem;">Googleアカウント</div>
+          <div id="spa-email" style="font-weight:600; color:var(--accent); font-size:0.95rem;">
+            <?= userEmail ?>
+          </div>
+          <a href="<?= switchAccountUrl ?>" target="_top" class="btn-switch-account"
+            style="margin-top:0.75rem; display:inline-flex; align-items:center; justify-content:center; text-decoration:none; gap:0.5rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); padding:0.5rem 1rem; border-radius:8px; color:var(--text-muted); font-size:0.75rem;">
+            🔄 別のGoogleアカウントでログイン
+          </a>
+        </div>
+
+        <div id="spa-error" class="error-message"
+          style="display:none; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:12px; padding:1rem; margin-bottom:1.5rem; color:#fca5a5; font-size:0.875rem;">
+        </div>
+
+        <form id="spa-login-form" onsubmit="handleSpaLogin(event)">
+          <div class="form-group">
+            <label id="spa-pass-label">
+              <?= isFirstTime ? '新しいパスワードを設定' : 'パスワード' ?>
+            </label>
+            <input type="password" id="spa-password" placeholder="<?= isFirstTime ? 'パスワードを設定してください' : 'パスワードを入力' ?>"
+              required
+              style="width:100%; background:rgba(15,23,42,0.6); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:0.875rem 1rem; color:white;">
+          </div>
+          <button type="submit" id="spa-login-btn" class="btn btn-primary" style="width:100%;">
+            <span>🔐</span> <span id="spa-btn-text">
+              <?= isFirstTime ? 'パスワードを設定して開始' : 'ログイン' ?>
+            </span>
+          </button>
+        </form>
+
+        <!-- Troubleshooting Toggle -->
+        <button onclick="toggleDiag()"
+          style="margin-top:1.5rem; background:transparent; border:none; color:var(--text-muted); font-size:0.75rem; cursor:pointer; width:100%; text-align:center; text-decoration:underline;">
+          [+] トラブル診断情報を表示
+        </button>
+        <div id="diag-box"
+          style="margin-top:1rem; padding:1rem; background:rgba(0,0,0,0.2); border-radius:12px; font-size:0.75rem; color:var(--text-muted); display:none;">
+          <div id="diag-content"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container" id="main-content" style="visibility:hidden;">
     <header>
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
@@ -289,42 +572,35 @@
       </div>
     </header>
 
-    <? if (statusMessage) { ?>
-    <div class="status-banner">
-      <?= statusMessage ?>
-    </div>
-    <? } ?>
+    <div id="status-banner" class="status-banner" style="display:none;"></div>
 
-    <!-- 1. Account Identity -->
+    <!-- 1. Account Settings -->
     <section>
       <h2>👤 アカウント情報</h2>
       <div class="grid">
-        <div class="info-box" style="justify-content: space-between; align-items: center; display: flex;">
-          <div style="flex: 1;">
-            <div class="info-label">Google アカウント</div>
-            <div class="info-value">
-              <?= config.userEmail ?>
-            </div>
+        <div class="info-box">
+          <div class="info-content">
+            <span class="info-label">Google アカウント</span>
+            <span class="info-value" id="disp-email">Loading...</span>
           </div>
-          <div style="display: flex; gap: 10px; align-items: center;">
+          <div class="info-actions">
             <span class="badge badge-success">認証済み</span>
             <button onclick="handleChangeGoogleAccount()" class="btn btn-outline btn-small"
               style="padding: 4px 10px; font-size: 0.75rem; width: auto; min-width: 60px;">変更</button>
           </div>
         </div>
+
         <div class="info-box">
-          <div>
-            <div class="info-label">LINE アカウント (ID)</div>
-            <div class="info-value" id="disp-line-id">
-              <?= config.userLineId === 'NOT_SET' ? '未連携' : config.userLineId ?>
-            </div>
+          <div class="info-content">
+            <span class="info-label">LINE アカウント (ID)</span>
+            <span class="info-value" id="disp-line-id">Loading...</span>
           </div>
-          <? if (config.userLineId === 'NOT_SET') { ?>
-          <button onclick="handleLogin()" class="btn btn-primary btn-small"
-            style="padding: 6px 14px; font-size: 0.8rem;">連携する</button>
-          <? } else { ?>
-          <span class="badge badge-success">連携済み</span>
-          <? } ?>
+          <div class="info-actions">
+            <button onclick="handleLogin()" class="btn btn-primary" id="line-connect-btn"
+              style="padding: 6px 12px; font-size: 0.8rem; width: auto; display: none;">連携する</button>
+            <button onclick="handleDisconnect()" class="btn btn-outline" id="line-disconnect-btn"
+              style="padding: 6px 12px; font-size: 0.8rem; width: auto; color: var(--danger); border-color: rgba(239, 68, 68, 0.3); display: none;">解除する</button>
+          </div>
         </div>
       </div>
     </section>
@@ -333,106 +609,172 @@
     <section>
       <h2>🚨 緊急トリガー設定</h2>
       <div class="grid">
-        <div class="form-group">
-          <label for="passkey">緊急起動パスキー</label>
-          <input type="password" id="passkey" value="<?= config.passkey ?>" placeholder="遺言のトリガーとなる合言葉">
+        <div class="form-card">
+          <div class="info-content">
+            <span class="info-label">緊急起動 (Web版)</span>
+            <div style="font-size: 0.85rem; margin-top: 0.5rem;">
+              <a id="trigger-page-link" href="#" target="_blank"
+                style="color: var(--accent); text-decoration: underline; word-break: break-all; font-weight: 600;"></a>
+            </div>
+            <span style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.5rem;">
+              ※このURLをキーマン（遺族など）に共有してください。
+            </span>
+          </div>
         </div>
-        <div style="display: flex; align-items: center; color: var(--text-muted); font-size: 0.85rem;">
-          <p>※合言葉によってシステムが起動されると、以下の「遺言・最終メッセージ」に登録された全員へ即座に通知が飛びます。</p>
+
+        <div class="form-card">
+          <div class="info-content" style="width: 100%;">
+            <span class="info-label">緊急起動パスキー</span>
+            <div style="position: relative; margin-top: 0.5rem;">
+              <input type="password" id="passkey" value="" placeholder="合言葉" style="background: rgba(0,0,0,0.3);">
+              <button type="button" onclick="togglePasskey()" id="passkey-toggle"
+                style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 1.2rem;">👁️</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p style="margin-top: 1.25rem; font-size: 0.75rem; color: var(--text-muted); text-align: center;">
+        ※合言葉が入力されると、登録された全員へ即座に通知が飛びます。<br>
+        <span style="color: var(--accent);">※合言葉はシステム全体で重複できません。他の人と被らない長い言葉を推奨します。</span>
+      </p>
+    </section>
+
+    <!-- 3. Device Protection Settings -->
+    <section>
+      <h2>📱 デバイス保護設定 (遠隔初期化)</h2>
+
+      <div class="grid device-selector">
+        <div class="info-box device-option" id="opt-android" onclick="setDeviceType('android')">
+          <div class="info-content">
+            <span class="info-label">スマホの種類</span>
+            <span class="info-value">🤖 Android</span>
+          </div>
+          <div class="info-actions">
+            <span class="selection-indicator">選択中</span>
+          </div>
+        </div>
+        <div class="info-box device-option" id="opt-iphone" onclick="setDeviceType('iphone')">
+          <div class="info-content">
+            <span class="info-label">スマホの種類</span>
+            <span class="info-value">🍎 iPhone (iOS)</span>
+          </div>
+          <div class="info-actions">
+            <span class="selection-indicator">選択中</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Android Specific -->
+      <div id="device-config-android" style="display: none;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="macrodroidWebhookUrl">スマホ遠隔初期化のURL (MacroDroid)</label>
+          <input type="text" id="macrodroidWebhookUrl" value="" placeholder="https://trigger.macrodroid.com/...">
+        </div>
+      </div>
+
+      <!-- iPhone Specific -->
+      <div id="device-config-iphone" style="display: none;">
+        <div class="iphone-checklist">
+          <p style="font-size: 0.85rem; margin-top:0; margin-bottom:1rem; color: var(--accent); font-weight:600;">
+            🍎 iPhoneの保護設定（推奨）
+          </p>
+
+          <div class="checklist-item">
+            <input type="checkbox" style="width: auto; margin-top: 3px;" checked disabled>
+            <div class="checklist-text">
+              <b>「データを消去（10回失敗時）」をONにする</b>
+              <span>[設定] > [Face IDとパスコード] <br>※10回パスコードを間違えるとデータが全消去されます。</span>
+            </div>
+          </div>
+
+          <div class="checklist-item">
+            <input type="checkbox" style="width: auto; margin-top: 3px;" checked disabled>
+            <div class="checklist-text">
+              <b>「故人アカウント管理連絡先」を削除する</b>
+              <span>[設定] > [Apple ID] > [サインインとセキュリティ] <br>※設定されていると遺族にロック解除される可能性があります。</span>
+            </div>
+          </div>
+
+          <div class="checklist-item">
+            <input type="checkbox" style="width: auto; margin-top: 3px;" checked disabled>
+            <div class="checklist-text">
+              <b>Face ID / Touch ID をOFFにする</b>
+              <span>[設定] > [Face IDとパスコード] <br>※生体認証をすべて削除し、パスコードのみにします。寝ている間に解除されるリスクを防ぎます。</span>
+            </div>
+          </div>
+
         </div>
       </div>
     </section>
 
-    <!-- 3. Execution Settings -->
+    <!-- 4. Grace Period Settings -->
     <section>
-      <h2>⚙️ 実行フェーズ設定</h2>
+      <h2>⏱️ 執行猶予設定</h2>
       <div class="grid">
-        <div class="form-group">
-          <label for="gracePeriodHours">猶予期間 (時間)</label>
-          <input type="number" id="gracePeriodHours" value="<?= config.gracePeriodHours ?>" min="1" max="168">
-          <small style="color: var(--text-muted); font-size: 0.7rem;">生存確認メッセージへの応答がない場合に実行されるまでの時間。</small>
+        <div class="form-card">
+          <div class="info-content">
+            <span class="info-label">猶予期間 (時間)</span>
+            <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
+              <input type="number" id="gracePeriodHours" value="24" min="1" max="168"
+                style="max-width: 120px; background: rgba(0,0,0,0.3);">
+              <span style="color: var(--text-muted); font-weight: 600;">時間</span>
+            </div>
+          </div>
         </div>
-        <div class="form-group">
-          <label for="macrodroidWebhookUrl">MacroDroid Webhook URL</label>
-          <input type="text" id="macrodroidWebhookUrl" value="<?= config.macrodroidWebhookUrl ?>"
-            placeholder="Android端末の初期化用">
+        <div class="info-box" style="pointer-events: none; border: none; background: none; box-shadow: none;">
+          <div class="info-content">
+            <span style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
+              ※生存確認の連絡に対し、この時間内に反応がないと全自動で遺言送信・消去が実行されます。
+            </span>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- 4. Last Messages -->
+    <!-- 5. Last Messages -->
     <section id="messages-section">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h2 style="margin-bottom: 0;">💌 遺言・最終メッセージ</h2>
-        <button class="btn btn-outline" onclick="addMessageRow()">＋ 追加</button>
+        <button onclick="addMessageRow()" class="btn btn-outline btn-small"
+          style="padding: 0.5rem 1.25rem; font-size: 0.85rem; width: auto;">
+          <span>+</span> 追加
+        </button>
       </div>
-
-      <div id="messages-list">
-        <!-- Message Rows will be injected here -->
-      </div>
+      <div id="messages-list"></div>
     </section>
 
-    <!-- 5. Advanced (API Keys) -->
+    <!-- 6. Operation Tests -->
     <section>
-      <details>
-        <summary style="cursor: pointer; color: var(--text-muted); font-size: 0.8rem;">詳細設定 (APIキー等 - 必須)</summary>
-        <div style="padding-top: 1rem;">
-          <div
-            style="background: rgba(56, 189, 248, 0.1); border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; border: 1px solid rgba(56, 189, 248, 0.2);">
-            <p style="margin: 0; font-size: 0.85rem; color: var(--accent);">
-              💡 <b>どこで確認できますか？</b><br>
-              <a href="https://developers.line.biz/console/" target="_blank"
-                style="color: white; text-decoration: underline;">LINE Developers Console</a> から各チャネル（Messaging API /
-              LINE Login）の基本情報を確認してください。
-            </p>
-          </div>
-          <div class="form-group">
-            <label>LINE Channel Access Token (Messaging API)</label>
-            <input type="password" id="lineAccessToken" value="<?= config.lineAccessToken ?>"
-              placeholder="eyJhbGciOiJIUzI1NiJ9...">
-          </div>
-          <div class="grid">
-            <div class="form-group">
-              <label>LINE Login Client ID (Channel ID)</label>
-              <input type="text" id="lineClientId" value="<?= config.lineClientId ?>" placeholder="例: 1234567890">
-            </div>
-            <div class="form-group">
-              <label>LINE Login Client Secret</label>
-              <input type="password" id="lineClientSecret" value="<?= config.lineClientSecret ?>">
-            </div>
-          </div>
-        </div>
-      </details>
-    </section>
-
-    <!-- 6. Test Operations -->
-    <section>
-      <h2 style="color: #fbbf24;">🧪 動作テスト (安全確認)</h2>
+      <h2>🥒 動作テスト (安全確認)</h2>
       <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">
         保存済みの設定が正しく動くか、実際に他人に通知を送らずにテストできます。
       </p>
+
       <div class="grid">
-        <div class="form-group">
-          <button class="btn btn-outline" style="width: 100%;" onclick="runTest('verifyLineConnection')">
-            <span>📱</span> LINE連携テスト
-          </button>
-        </div>
-        <div class="form-group">
-          <button class="btn btn-outline" style="width: 100%;" onclick="runTest('simulateEmergencyTrigger')">
-            <span>🚨</span> 起動シミュレーション
-          </button>
-        </div>
-        <div class="form-group">
-          <button class="btn btn-outline" style="width: 100%;" onclick="runTest('simulateLastMessages')">
-            <span>📧</span> 遺言プレビュー送信
-          </button>
-        </div>
+        <button onclick="runTest('verifyLineConnection')" class="btn btn-outline" style="justify-content: center;">
+          📱 LINE連携テスト
+        </button>
+        <button onclick="runTest('simulateEmergencyTrigger')" class="btn btn-outline" style="justify-content: center;">
+          🚨 起動シミュレーション
+        </button>
       </div>
-      <div id="test-result" style="margin-top: 1rem; font-size: 0.85rem; color: #4ade80; display: none;"></div>
+
+      <div style="margin-top: 1rem;">
+        <button onclick="runTest('simulateLastMessages')" class="btn btn-outline"
+          style="width: 100%; justify-content: center;">
+          📧 遺言プレビュー送信
+        </button>
+      </div>
+
+      <p id="test-result-msg" style="margin-top: 1rem; font-size: 0.85rem; color: var(--accent); min-height: 1.2em;">
+      </p>
     </section>
 
     <div class="footer-actions">
-      <button class="btn btn-accent btn-large" onclick="handleSave()" id="save-btn">
+      <button class="btn btn-outline" onclick="restoreData()" style="min-width: 140px;">
+        <span>↩️</span> データ復元
+      </button>
+      <button class="btn btn-primary" onclick="handleSave(this)" id="save-btn" style="flex: 1; max-width: 400px;">
         <span>💾</span> 設定を保存して適用する
       </button>
     </div>
@@ -441,47 +783,208 @@
   <div id="toast">保存されました</div>
 
   <script>
-    const initialMessages = <?= JSON.stringify(config.lastMessages) ?>;
+    const INJECTED_SESSION_TOKEN = '<?!= sessionToken ?>';
+    const SCRIPT_URL = '<?!= scriptUrl ?>';
+    let currentSessionToken = '';
+    let diagData = null;
+
+    // 1. Initial Load Sequence
+    window.onload = function () {
+      detectDomainMismatch();
+
+      let sToken = INJECTED_SESSION_TOKEN || '';
+      if (!sToken) {
+        const urlParams = new URLSearchParams(window.location.search);
+        sToken = urlParams.get('session') || '';
+      }
+      currentSessionToken = sToken;
+
+      initAuthCheck(sToken);
+    };
+
+    function detectDomainMismatch() {
+      const currentUrl = window.location.href;
+      // If URL contains /a/ (Workspace) but we want canonical (script.google.com/macros/s/...)
+      if (currentUrl.includes('/a/')) {
+        document.getElementById('domain-warning').style.display = 'block';
+        const redirectLink = document.getElementById('canonical-redirect-link');
+        redirectLink.href = SCRIPT_URL;
+      }
+    }
+
+    function initAuthCheck(token) {
+      console.log("SPA: Initializing Auth Check...");
+
+      // If auth check takes too long, show the "Action Required" guidance
+      const authTimeout = setTimeout(() => {
+        if (!diagData) {
+          document.getElementById('auth-guidance').style.display = 'block';
+          document.getElementById('loading-text').innerText = '接続待機中 (承認確認をお願いします)';
+        }
+      }, 3000);
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          clearTimeout(authTimeout);
+          diagData = res;
+          handleAuthResponse(res, token);
+
+          // Update canonical link in warning if available
+          if (res.canonicalUrl) {
+            const redirectLink = document.getElementById('canonical-redirect-link');
+            if (redirectLink) redirectLink.href = res.canonicalUrl;
+          }
+        })
+        .withFailureHandler((err) => {
+          clearTimeout(authTimeout);
+          console.error("Auth status failure:", err);
+          document.getElementById('auth-guidance').style.display = 'block';
+          document.getElementById('loading-text').innerText = 'エラーにより停止: ' + err.message;
+        })
+        .getAuthStatus(token);
+    }
+
+    function handleAuthResponse(res, sentToken) {
+      document.getElementById('loading-hint').style.display = 'none';
+      document.getElementById('auth-guidance').style.display = 'none';
+
+      if (res.authenticated) {
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('main-content').style.visibility = 'visible';
+
+        // Update labels based on user response
+        document.getElementById('spa-email').innerText = res.userEmail;
+
+        google.script.run.withSuccessHandler(initApp).getSettings(sentToken);
+      } else {
+        document.getElementById('login-overlay').style.display = 'flex';
+        document.getElementById('spa-login-section').style.display = 'block';
+
+        // Update first-time setup text
+        if (res.isFirstTime) {
+          document.getElementById('spa-pass-label').innerText = '新しいパスワードを設定';
+          document.getElementById('spa-password').placeholder = 'パスワードを設定してください';
+          document.getElementById('spa-btn-text').innerText = 'パスワードを設定して開始';
+        } else {
+          document.getElementById('spa-pass-label').innerText = 'パスワード';
+          document.getElementById('spa-password').placeholder = 'パスワードを入力';
+          document.getElementById('spa-btn-text').innerText = 'ログイン';
+        }
+      }
+    }
+
+    // 2. Login Logic
+    function handleSpaLogin(event) {
+      event.preventDefault();
+      const password = document.getElementById('spa-password').value.trim();
+      const btn = document.getElementById('spa-login-btn');
+      const errorDiv = document.getElementById('spa-error');
+
+      btn.disabled = true;
+      errorDiv.style.display = 'none';
+
+      google.script.run
+        .withSuccessHandler((result) => {
+          if (result.success) {
+            currentSessionToken = result.sessionToken;
+            // Update URL for refreshing without re-login
+            if (google.script.history) {
+              google.script.history.push({}, { session: result.sessionToken }, '');
+            }
+            handleAuthResponse({ authenticated: true }, result.sessionToken);
+          } else {
+            errorDiv.innerText = result.message || 'ログイン失敗';
+            errorDiv.style.display = 'block';
+            btn.disabled = false;
+          }
+        })
+        .withFailureHandler((err) => {
+          errorDiv.innerText = "通信エラー: " + err.message;
+          errorDiv.style.display = 'block';
+          btn.disabled = false;
+        })
+        .authenticateUser(password);
+    }
+
+    // 3. App Initialization
+    function initApp(config) {
+      document.getElementById('disp-email').innerText = config.userEmail || "Anonymous";
+      document.getElementById('passkey').value = config.passkey || '';
+      document.getElementById('macrodroidWebhookUrl').value = config.macrodroidWebhookUrl || '';
+      document.getElementById('gracePeriodHours').value = config.gracePeriodHours || 24;
+      const isLineSet = (config.userLineId && config.userLineId !== 'NOT_SET');
+      document.getElementById('disp-line-id').innerText = (isLineSet ? config.userLineId : '未連携');
+      document.getElementById('line-connect-btn').style.display = isLineSet ? 'none' : 'inline-flex';
+      document.getElementById('line-disconnect-btn').style.display = isLineSet ? 'inline-flex' : 'none';
+
+      // Trigger URL setup
+      const sUrl = config.scriptUrl || SCRIPT_URL || "";
+      const triggerPageUrl = sUrl + (sUrl.includes("?") ? "&" : "?") + "page=trigger";
+      const triggerLink = document.getElementById('trigger-page-link');
+      if (triggerLink) {
+        triggerLink.href = triggerPageUrl;
+        triggerLink.innerText = triggerPageUrl;
+      }
+
+      setDeviceType(config.deviceType || 'android');
+      const list = document.getElementById('messages-list');
+      list.innerHTML = '';
+      (config.lastMessages || []).forEach(msg => addMessageRow(msg));
+      if (list.children.length === 0) addMessageRow();
+    }
+
+    // 4. Diagnostic UI
+    function toggleDiag() {
+      const box = document.getElementById('diag-box');
+      const cont = document.getElementById('diag-content');
+      if (!box || !cont) return;
+
+      if (box.style.display === 'none') {
+        const d = diagData || {};
+        cont.innerHTML = `
+                <div style="border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.5rem; margin-bottom:0.5rem; font-weight:bold; color:var(--accent);">🔍 システム診断情報</div>
+                • アカウント: ${d.userEmail || '(取得不可)'}<br>
+                • 権限状況:<br>
+                  - 設定保存: ${d.permissions?.Properties === true ? '✅OK' : '❌NG (' + (d.permissions?.Properties || '要承認') + ')'}<br>
+                  - ドライブ: ${d.permissions?.Drive === true ? '✅OK' : '❌NG'}<br>
+                  - 有効ユーザー: ${d.permissions?.EffectiveUser || '-'}<br>
+                • セッション: ${d.authenticated ? '有効' : '未認証'}<br>
+                • 接続先ドメイン: ${window.location.host}
+            `;
+        box.style.display = 'block';
+      } else {
+        box.style.display = 'none';
+      }
+    }
+
+    // --- Original UI Helpers ---
 
     function addMessageRow(data = { name: '', type: 'LINE', id: '', message: '' }) {
       const list = document.getElementById('messages-list');
       const div = document.createElement('div');
       div.className = 'message-item';
       div.innerHTML = `
-        <button class="btn-remove" onclick="this.parentElement.remove()">✕</button>
+        <button class="btn-remove" onclick="if(confirm('送信先を削除しますか？')) this.parentElement.remove()">🗑️ 削除</button>
         <div class="grid">
-          <div class="form-group">
-            <label>宛名</label>
-            <input type="text" class="msg-name" value="${data.name}" placeholder="例: パートナー">
-          </div>
-          <div class="form-group">
-            <label>通知手段</label>
-            <select class="msg-type">
-              <option value="LINE" ${data.type === 'LINE' ? 'selected' : ''}>LINE</option>
-              <option value="EMAIL" ${data.type === 'EMAIL' ? 'selected' : ''}>Email</option>
-            </select>
-          </div>
+          <div class="form-group"><label>宛名</label><input type="text" class="msg-name" value="${data.name}"></div>
+          <div class="form-group"><label>通知手段</label><select class="msg-type"><option value="LINE" ${data.type === 'LINE' ? 'selected' : ''}>LINE</option><option value="EMAIL" ${data.type === 'EMAIL' ? 'selected' : ''}>Email</option></select></div>
         </div>
-        <div class="form-group">
-          <label>送信先ID / Email</label>
-          <input type="text" class="msg-id" value="${data.id}" placeholder="LINE ID または メールアドレス">
-        </div>
-        <div class="form-group" style="margin-bottom:0;">
-          <label>メッセージ本文</label>
-          <textarea class="msg-content" rows="3" placeholder="最期の言葉を入力してください">${data.message}</textarea>
-        </div>
+        <div class="form-group"><label>送信先ID / Email</label><input type="text" class="msg-id" value="${data.id}"></div>
+        <div class="form-group"><label>メッセージ本文</label><textarea class="msg-content" rows="3">${data.message}</textarea></div>
       `;
       list.appendChild(div);
     }
 
-    // Initialize with existing messages
-    initialMessages.forEach(msg => addMessageRow(msg));
+    function setDeviceType(type) {
+      document.getElementById('opt-android').classList.toggle('active', type === 'android');
+      document.getElementById('opt-iphone').classList.toggle('active', type === 'iphone');
+      document.getElementById('device-config-android').style.display = (type === 'android' ? 'block' : 'none');
+      document.getElementById('device-config-iphone').style.display = (type === 'iphone' ? 'block' : 'none');
+      window.selectedDeviceType = type;
+    }
 
-    function handleSave(callback) {
-      const saveBtn = document.getElementById('save-btn');
-      saveBtn.disabled = true;
-      saveBtn.innerText = "保存中...";
-
+    function handleSave(btn) {
+      btn.disabled = true;
       const messageItems = document.querySelectorAll('.message-item');
       const lastMessages = Array.from(messageItems).map(item => ({
         name: item.querySelector('.msg-name').value,
@@ -489,96 +992,73 @@
         id: item.querySelector('.msg-id').value,
         message: item.querySelector('.msg-content').value
       }));
-
       const data = {
         passkey: document.getElementById('passkey').value,
         gracePeriodHours: document.getElementById('gracePeriodHours').value,
+        deviceType: window.selectedDeviceType,
         macrodroidWebhookUrl: document.getElementById('macrodroidWebhookUrl').value,
-        lastMessages: lastMessages,
-        lineAccessToken: document.getElementById('lineAccessToken').value,
-        lineClientId: document.getElementById('lineClientId').value,
-        lineClientSecret: document.getElementById('lineClientSecret').value
+        lastMessages: lastMessages
       };
-
-      google.script.run
-        .withSuccessHandler((res) => {
-          showToast(res.message);
-          saveBtn.disabled = false;
-          saveBtn.innerHTML = '<span>💾</span> 設定を保存して適用する';
-          if (callback) callback();
-        })
-        .withFailureHandler((err) => {
-          alert("エラーが発生しました: " + err.message);
-          saveBtn.disabled = false;
-          saveBtn.innerHTML = '<span>💾</span> 設定を保存して適用する';
-        })
-        .saveSettings(data);
+      google.script.run.withSuccessHandler((res) => {
+        showToast(res.message);
+        btn.disabled = false;
+      }).saveSettings(currentSessionToken, data);
     }
 
     function showToast(msg) {
       const toast = document.getElementById('toast');
       toast.innerText = msg;
       toast.style.display = 'block';
-      setTimeout(() => {
-        toast.style.display = 'none';
-      }, 3000);
+      setTimeout(() => toast.style.display = 'none', 3000);
     }
 
     function runTest(functionName) {
-      const resultDiv = document.getElementById('test-result');
-      resultDiv.style.display = 'block';
-      resultDiv.style.color = '#94a3b8';
-      resultDiv.innerText = 'テスト実行中...';
-
-      google.script.run
-        .withSuccessHandler((res) => {
-          resultDiv.innerText = res.message;
-          resultDiv.style.color = res.success ? '#4ade80' : '#ef4444';
-          showToast("テストを完了しました");
-        })
-        .withFailureHandler((err) => {
-          resultDiv.innerText = "エラー: " + err.message;
-          resultDiv.style.color = '#ef4444';
-        })[functionName]();
-    }
-
-    function handleLogin() {
-      showToast("LINE認証画面を準備中...");
-      google.script.run
-        .withSuccessHandler((url) => {
-          console.log("Redirecting to: " + url);
-          window.top.location.replace(url);
-        })
-        .withFailureHandler((err) => {
-          alert("認証URLの取得に失敗しました: " + err.message);
-        })
-        .getLoginUrl();
+      google.script.run.withSuccessHandler((res) => alert(res.message))[functionName](currentSessionToken);
     }
 
     function handleLogout() {
       if (confirm("ログアウトしますか？")) {
-        google.script.run
-          .withSuccessHandler((result) => {
-            window.top.location.href = result.redirectUrl;
-          })
-          .withFailureHandler((err) => {
-            alert("ログアウトに失敗しました: " + err.message);
-          })
-          .logout();
+        google.script.run.withSuccessHandler((res) => window.top.location.href = res.redirectUrl).logout();
       }
     }
 
     function handleChangeGoogleAccount() {
-      if (confirm("Googleアカウントを変更するには一度ログアウトします。\nよろしいですか？")) {
+      if (window.location.href.includes('/dev')) {
+        alert("⚠️ 開発者モード(dev)のURLでは、編集権限のないアカウントへ切り替えるとエラーになります。\n\n必ずデプロイ済みの本番用URL(exec)を使用してください。");
+      }
+      if (confirm("別のアカウントでログインし直しますか？")) {
+        // Use client-side URL to ensure we return to the exact same deploy
+        const currentUrl = window.location.href.split('?')[0];
+        const target = "https://accounts.google.com/AccountChooser?service=wise&continue=" + encodeURIComponent(currentUrl);
+        window.top.location.href = target;
+      }
+    }
+
+    function handleLogin(forceLogin = false) {
+      google.script.run.withSuccessHandler((url) => window.top.location.replace(url)).getLoginUrl(forceLogin, currentSessionToken);
+    }
+
+    function handleDisconnect() {
+      if (confirm("LINE連携を解除しますか？\n解除すると生存確認のメッセージが届かなくなります。")) {
         google.script.run
-          .withSuccessHandler((result) => {
-            // ログアウト後にログイン画面へ飛ばす。そこにある「アカウント変更」ボタンを使用してもらう仕組み
-            window.top.location.href = result.redirectUrl;
+          .withSuccessHandler((res) => {
+            showToast(res.message);
+            // Re-fetch settings to update UI
+            google.script.run.withSuccessHandler(initApp).getSettings(currentSessionToken);
           })
-          .withFailureHandler((err) => {
-            alert("処理中にエラーが発生しました: " + err.message);
-          })
-          .logout();
+          .disconnectLineAccount(currentSessionToken);
+      }
+    }
+
+    function togglePasskey() {
+      const input = document.getElementById('passkey');
+      const btn = document.getElementById('passkey-toggle');
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.innerText = '👓';
+      } else {
+        input.type = 'password';
+        btn.innerText = '👁️';
       }
     }
   </script>

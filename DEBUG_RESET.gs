@@ -44,3 +44,4 @@ function debugAutoLogin() {
   console.log('🔗 URL: ' + url);
   console.log('このURLをブラウザに貼り付けてアクセスしてください。');
 }
+function clearCanonicalUrl() { PropertiesService.getScriptProperties().deleteProperty('CANONICAL_URL'); console.log('✅ CANONICAL_URL cleared'); }

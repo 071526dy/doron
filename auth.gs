@@ -1,33 +1,204 @@
 /**
- * auth.gs - LINE Login OAuth2 Logic
+ * auth.gs - Security & Session Management (Refactored for USER_DEPLOYING)
  */
 
-/**
- * Returns the LINE Login URL.
- */
-function getLoginUrl() {
-  const redirectUri = ScriptApp.getService().getUrl();
-  const state = Math.random().toString(36).substring(7);
+// Helper to get CANONICAL script URL (fixes domain/multi-account issues)
+// Helper to get Web App URL (handles dev/exec and canonical needs)
+function getAppUrl(defaultUrl = "") {
+  // Use a stored property if set, otherwise use the current service URL
+  const props = PropertiesService.getScriptProperties();
+  let url = props.getProperty('CANONICAL_URL');
   
-  // Temporarily store state in user properties to prevent CSRF
-  PropertiesService.getUserProperties().setProperty('oauth_state', state);
-
-  const url = "https://access.line.me/oauth2/v2.1/authorize?" +
-    "response_type=code" +
-    "&client_id=" + CONFIG.LINE_CLIENT_ID +
-    "&redirect_uri=" + encodeURIComponent(redirectUri) +
-    "&state=" + state +
-    "&scope=profile%20openid";
+  if (!url) {
+    url = ScriptApp.getService().getUrl();
+  }
   
+  // Cleanup trailing slash
+  if (url && url.endsWith('/')) url = url.slice(0, -1);
   return url;
 }
 
 /**
- * Handles the OAuth callback and exchanges code for token/ID.
+ * DEBUG: Run this to lock in the current URL as Canonical
  */
-function handleAuthCallback(code) {
-  const redirectUri = ScriptApp.getService().getUrl();
+function debugSetCanonicalUrl() {
+  const url = ScriptApp.getService().getUrl();
+  PropertiesService.getScriptProperties().setProperty('CANONICAL_URL', url);
+  console.log("✅ CANONICAL_URL set to: " + url);
+  return url;
+}
+
+// ============================================
+// 1. Authentication & Session Management
+// ============================================
+
+/**
+ * Authenticates user with email and password.
+ */
+function authenticateUser(password) {
+  const userEmail = getUserEmail();
+  if (userEmail === "Anonymous") {
+    return { success: false, message: "Googleアカウントにログインしてください" };
+  }
+
+  const user = DB.getUser(userEmail);
+
+  // First time setup for this specific user
+  if (!user || !user.hashed_password) {
+    if (!password || password.length < 6) {
+      return { success: false, message: 'パスワードは6文字以上で設定してください' };
+    }
+    
+    // Create or update user
+    const newUser = {
+      email: userEmail,
+      hashed_password: password, // Simple for now, should salt/hash later
+      created_at: new Date()
+    };
+    DB.saveUser(newUser);
+    
+    const token = generateAdminToken(userEmail);
+    const baseUrl = getAppUrl("");
+    const redirectUrl = baseUrl ? (baseUrl + "?session=" + token) : ("?session=" + token);
+    return { success: true, sessionToken: token, redirectUrl: redirectUrl };
+  }
   
+  // Verify password
+  if (password !== user.hashed_password) {
+    return { success: false, message: "パスワードが正しくありません" };
+  }
+
+  const token = generateAdminToken(userEmail);
+  const baseUrl = getAppUrl("");
+  const redirectUrl = baseUrl ? (baseUrl + "?session=" + token) : ("?session=" + token);
+  return { success: true, sessionToken: token, redirectUrl: redirectUrl };
+}
+
+/**
+ * Generates and saves a session token for a specific user.
+ */
+function generateAdminToken(email) {
+  const token = Utilities.getUuid();
+  const expiryTime = new Date(new Date().getTime() + (24 * 60 * 60 * 1000)); // 24 hours
+  
+  DB.saveSession(token, email, expiryTime);
+  return token;
+}
+
+/**
+ * Validates the session token from DB.
+ */
+function validateAdminSession(token) {
+  if (!token) return false;
+  const session = DB.getSession(token);
+  if (!session) return false;
+  
+  const now = new Date();
+  if (new Date(session.expires_at) < now) {
+    DB.deleteSession(token);
+    return false;
+  }
+  
+  return true;
+}
+
+/**
+ * Endpoint for SPA to check status.
+ */
+function getAuthStatus(sessionToken) {
+  const isValid = validateAdminSession(sessionToken);
+  const userEmail = getUserEmail();
+  
+  let user = null;
+  if (userEmail !== "Anonymous") {
+    user = DB.getUser(userEmail);
+  }
+
+  const isFirstTime = !user || !user.hashed_password;
+  const permissions = checkPermissions();
+  
+  let sessionUserEmail = "Anonymous";
+  if (isValid) {
+    const session = DB.getSession(sessionToken);
+    sessionUserEmail = session ? session.user_email : "Anonymous";
+  }
+
+  return {
+    authenticated: isValid,
+    userEmail: userEmail,
+    sessionUserEmail: sessionUserEmail,
+    isFirstTime: isFirstTime,
+    permissions: permissions,
+    canonicalUrl: getAppUrl()
+  };
+}
+
+/**
+ * Specifically for polling the current user status.
+ */
+function getActiveUserEmail() {
+  const email = getUserEmail();
+  return {
+    email: email
+  };
+}
+
+/**
+ * Robust email getter
+ */
+function getUserEmail() {
+  try {
+    const email = Session.getActiveUser().getEmail();
+    if (email && email !== "Anonymous") return email;
+    
+    // Fallback or handle restricted context
+    return "Anonymous";
+  } catch (e) {
+    return "Anonymous";
+  }
+}
+
+/**
+ * Logout
+ */
+function logout() {
+  const props = PropertiesService.getScriptProperties();
+  props.deleteProperty('ADMIN_SESSION_TOKEN');
+  props.deleteProperty('ADMIN_SESSION_EXPIRY');
+  return { success: true, redirectUrl: getAppUrl() };
+}
+
+
+// ============================================
+// 2. LINE Login Helpers (Stateless / Session params)
+// ============================================
+
+/**
+ * Returns the LINE Login URL.
+ */
+function getLoginUrl(forceLogin, sessionToken) {
+  const redirectUri = getAppUrl(""); 
+  console.log("LINE Login: Using redirect_uri = " + redirectUri);
+  
+  // We pack the session token into the state to identify the user on callback
+  const state = sessionToken || "GUEST_" + Math.random().toString(36).substring(7);
+  
+  let url = "https://access.line.me/oauth2/v2.1/authorize?" +
+    "response_type=code" +
+    "&client_id=" + CONFIG.LINE_CLIENT_ID +
+    "&redirect_uri=" + encodeURIComponent(redirectUri) +
+    "&state=" + encodeURIComponent(state) +
+    "&scope=profile%20openid";
+  
+  if (forceLogin) url += "&prompt=login";
+  return url;
+}
+
+/**
+ * Handles the OAuth callback.
+ */
+function handleAuthCallback(code, state) {
+  const redirectUri = getAppUrl(""); // Use canonical Project URL for stability
   const payload = {
     grant_type: 'authorization_code',
     code: code,
@@ -36,396 +207,100 @@ function handleAuthCallback(code) {
     client_secret: CONFIG.LINE_CLIENT_SECRET
   };
 
-  const options = {
-    method: 'post',
-    payload: payload
-  };
-
   try {
-    const response = UrlFetchApp.fetch('https://api.line.me/oauth2/v2.1/token', options);
+    const response = UrlFetchApp.fetch('https://api.line.me/oauth2/v2.1/token', {
+      method: 'post',
+      payload: payload
+    });
     const data = JSON.parse(response.getContentText());
+    const lineUserId = getUserIdFromProfile(data.access_token);
     
-    // ID Token from LINE contains the userId
-    // However, the easiest way to get userId is from the profile API with the access token
-    const userId = getUserIdFromProfile(data.access_token);
+    // Identify user by state (session token)
+    const session = DB.getSession(state);
+    if (session) {
+      const user = DB.getUser(session.user_email);
+      if (user) {
+        user.line_id = lineUserId;
+        DB.saveUser(user);
+      }
+    }
     
-    // Save to Script Properties
-    PropertiesService.getScriptProperties().setProperty('USER_LINE_ID', userId);
-    
-    // Show success page with return button
-    return createSuccessPage(userId);
+    return createSuccessPage(lineUserId);
 
   } catch (e) {
     return createErrorPage(e.message);
   }
 }
 
-/**
- * Fetches user profile to get the persistent userId.
- */
 function getUserIdFromProfile(accessToken) {
-  const options = {
-    headers: {
-      'Authorization': 'Bearer ' + accessToken
-    }
-  };
-  const response = UrlFetchApp.fetch('https://api.line.me/v2/profile', options);
-  const profile = JSON.parse(response.getContentText());
-  return profile.userId;
+  const response = UrlFetchApp.fetch('https://api.line.me/v2/profile', {
+    headers: { 'Authorization': 'Bearer ' + accessToken }
+  });
+  return JSON.parse(response.getContentText()).userId;
 }
 
-/**
- * Creates a success page after LINE login
- */
 function createSuccessPage(userId) {
-  const systemUrl = ScriptApp.getService().getUrl();
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>LINE連携成功</title>
-      <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
-      <style>
-        * { box-sizing: border-box; }
-        body {
-          font-family: 'Outfit', sans-serif;
-          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-          color: #f8fafc;
-          margin: 0;
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 2rem;
-        }
-        .container {
-          background: rgba(30, 41, 59, 0.7);
-          backdrop-filter: blur(12px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 24px;
-          padding: 3rem;
-          max-width: 500px;
-          text-align: center;
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-          animation: fadeIn 0.5s ease-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .icon {
-          font-size: 4rem;
-          margin-bottom: 1rem;
-        }
-        h1 {
-          font-size: 1.75rem;
-          margin: 0 0 1rem 0;
-          color: #4ade80;
-        }
-        p {
-          color: #94a3b8;
-          margin-bottom: 2rem;
-          line-height: 1.6;
-        }
-        .user-id {
-          background: rgba(0, 0, 0, 0.2);
-          border-radius: 12px;
-          padding: 1rem;
-          margin-bottom: 2rem;
-          font-family: monospace;
-          font-size: 0.9rem;
-          word-break: break-all;
-        }
-        .btn {
-          background: #06C755;
-          color: white;
-          border: none;
-          border-radius: 12px;
-          padding: 1rem 2rem;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-          text-decoration: none;
-          display: inline-block;
-        }
-        .btn:hover {
-          background: #05b34c;
-          transform: translateY(-2px);
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="icon">✅</div>
-        <h1>LINE連携が完了しました!</h1>
-        <p>あなたのLINEアカウントが正常に登録されました。</p>
-        <div class="user-id">
-          <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.5rem;">登録されたLINE ID</div>
-          ${userId}
-        </div>
-        <a href="${systemUrl}" class="btn">
-          🏠 システム画面に戻る
-        </a>
-      </div>
-    </body>
-    </html>
-  `;
-  return HtmlService.createHtmlOutput(html);
+  const systemUrl = getAppUrl("");
+  return HtmlService.createHtmlOutput(`
+    <div style="font-family:sans-serif; text-align:center; padding:2rem;">
+      <h1>✅ LINE連携完了</h1>
+      <p>ID: ${userId}</p>
+      <a href="${systemUrl}" target="_top" style="background:#06C755; color:white; padding:10px 20px; text-decoration:none; border-radius:5px; display:inline-block; margin-top:1rem;">戻る</a>
+    </div>
+  `);
+}
+
+function createErrorPage(msg) {
+  const systemUrl = getAppUrl("");
+  return HtmlService.createHtmlOutput(`
+    <div style="font-family:sans-serif; text-align:center; padding:2rem; color:red;">
+      <h1>❌ 連携失敗</h1>
+      <p>${msg}</p>
+      <a href="${systemUrl}" target="_top" style="display:inline-block; margin-top:1rem;">戻る</a>
+    </div>
+  `);
 }
 
 /**
- * Creates an error page when LINE login fails
+ * Disconnects LINE (Secure).
  */
-function createErrorPage(errorMessage) {
-  const systemUrl = ScriptApp.getService().getUrl();
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>LINE連携エラー</title>
-      <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
-      <style>
-        * { box-sizing: border-box; }
-        body {
-          font-family: 'Outfit', sans-serif;
-          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-          color: #f8fafc;
-          margin: 0;
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 2rem;
-        }
-        .container {
-          background: rgba(30, 41, 59, 0.7);
-          backdrop-filter: blur(12px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 24px;
-          padding: 3rem;
-          max-width: 500px;
-          text-align: center;
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-          animation: fadeIn 0.5s ease-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .icon {
-          font-size: 4rem;
-          margin-bottom: 1rem;
-        }
-        h1 {
-          font-size: 1.75rem;
-          margin: 0 0 1rem 0;
-          color: #ef4444;
-        }
-        p {
-          color: #94a3b8;
-          margin-bottom: 2rem;
-          line-height: 1.6;
-        }
-        .error-message {
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid rgba(239, 68, 68, 0.3);
-          border-radius: 12px;
-          padding: 1rem;
-          margin-bottom: 2rem;
-          font-size: 0.9rem;
-          color: #fca5a5;
-        }
-        .btn {
-          background: #38bdf8;
-          color: #0f172a;
-          border: none;
-          border-radius: 12px;
-          padding: 1rem 2rem;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-          text-decoration: none;
-          display: inline-block;
-        }
-        .btn:hover {
-          opacity: 0.9;
-          transform: translateY(-2px);
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="icon">❌</div>
-        <h1>LINE連携に失敗しました</h1>
-        <p>認証処理中にエラーが発生しました。もう一度お試しください。</p>
-        <div class="error-message">
-          ${errorMessage}
-        </div>
-        <a href="${systemUrl}" class="btn">
-          🏠 システム画面に戻る
-        </a>
-      </div>
-    </body>
-    </html>
-  `;
-  return HtmlService.createHtmlOutput(html);
-}
-
-// ============================================
-// Password Authentication & Session Management
-// ============================================
-
-/**
- * Authenticates user with password
- * @param {string} password - Password to verify
- * @returns {Object} - Result with success status and redirect URL
- */
-function authenticateUser(password) {
-  const props = PropertiesService.getScriptProperties();
-  const userEmail = Session.getActiveUser().getEmail();
+function disconnectLineAccount(token) {
+  const session = DB.getSession(token);
+  if (!session) throw new Error("Unauthorized");
   
-  // Check if this is first time setup
-  const storedPassword = props.getProperty('ADMIN_PASSWORD');
-  
-  if (!storedPassword) {
-    // First time setup - set password and lock account
-    if (!password || password.length < 6) {
-      return {
-        success: false,
-        message: 'パスワードは6文字以上で設定してください'
-      };
-    }
-    
-    props.setProperty('ADMIN_PASSWORD', password);
-    props.setProperty('LOCKED_ACCOUNT', userEmail);
-    
-    // Generate session token
-    const sessionToken = generateSessionToken();
-    const redirectUrl = ScriptApp.getService().getUrl() + '?session=' + sessionToken;
-    
-    return {
-      success: true,
-      redirectUrl: redirectUrl
-    };
+  const user = DB.getUser(session.user_email);
+  if (user) {
+    user.line_id = "";
+    DB.saveUser(user);
+    console.log(`LINE account disconnected for: ${session.user_email}`);
+    return { success: true, message: "LINE連携を解除しました" };
   }
-  
-  // Verify password first
-  if (password !== storedPassword) {
-    return {
-      success: false,
-      message: 'パスワードが正しくありません'
-    };
+  return { success: false, message: "ユーザーが見つかりません" };
+}
+
+/**
+ * DEBUG: Manually disconnect a user by email
+ */
+function debugDisconnectUser(email) {
+  const user = DB.getUser(email);
+  if (user) {
+    user.line_id = "";
+    DB.saveUser(user);
+    console.log(`✅ DEBUG: Manually disconnected LINE for: ${email}`);
+    return "Disconnected: " + email;
   }
-
-  // Password is correct. Check if we need to update the locked account.
-  const lockedAccount = props.getProperty('LOCKED_ACCOUNT');
-  if (lockedAccount && lockedAccount !== userEmail) {
-    // Audit log or property update
-    console.warn(`Account switched from ${lockedAccount} to ${userEmail}`);
-    props.setProperty('LOCKED_ACCOUNT', userEmail);
-  }
-  
-  // Generate session token
-  const sessionToken = generateSessionToken();
-  const redirectUrl = ScriptApp.getService().getUrl() + '?session=' + sessionToken;
-  
-  return {
-    success: true,
-    redirectUrl: redirectUrl
-  };
+  return "User not found: " + email;
 }
 
 /**
- * Generates a session token and stores it
- * @returns {string} - Session token
+ * Diagnostic helper to check what the script can access.
  */
-function generateSessionToken() {
-  const token = Utilities.getUuid();
-  const userEmail = Session.getActiveUser().getEmail();
-  const expiryTime = new Date().getTime() + (24 * 60 * 60 * 1000); // 24 hours
-  
-  const userProps = PropertiesService.getUserProperties();
-  userProps.setProperty('SESSION_TOKEN', token);
-  userProps.setProperty('SESSION_EXPIRY', expiryTime.toString());
-  userProps.setProperty('SESSION_EMAIL', userEmail);
-  
-  return token;
+function checkPermissions() {
+  const results = {};
+  try { results.Properties = !!PropertiesService.getScriptProperties(); } catch(e) { results.Properties = e.message; }
+  try { results.ActiveUser = Session.getActiveUser().getEmail() || "Anonymous"; } catch(e) { results.ActiveUser = e.message; }
+  try { results.EffectiveUser = Session.getEffectiveUser().getEmail(); } catch(e) { results.EffectiveUser = e.message; }
+  try { results.Drive = !!DriveApp.getRootFolder(); } catch(e) { results.Drive = e.message; }
+  return results;
 }
 
-/**
- * Validates a session token
- * @param {string} token - Session token to validate
- * @returns {boolean} - True if valid, false otherwise
- */
-function isValidSession(token) {
-  if (!token) return false;
-  
-  const userProps = PropertiesService.getUserProperties();
-  const storedToken = userProps.getProperty('SESSION_TOKEN');
-  const expiryTime = userProps.getProperty('SESSION_EXPIRY');
-  const sessionEmail = userProps.getProperty('SESSION_EMAIL');
-  const currentEmail = Session.getActiveUser().getEmail();
-  
-  // Check if token matches
-  if (token !== storedToken) return false;
-  
-  // Check if session expired
-  if (!expiryTime || new Date().getTime() > parseInt(expiryTime)) {
-    clearSession();
-    return false;
-  }
-  
-  // Check if email matches (prevent session hijacking)
-  if (sessionEmail !== currentEmail) {
-    clearSession();
-    return false;
-  }
-  
-  return true;
-}
-
-/**
- * Clears the current session
- */
-function clearSession() {
-  const userProps = PropertiesService.getUserProperties();
-  userProps.deleteProperty('SESSION_TOKEN');
-  userProps.deleteProperty('SESSION_EXPIRY');
-  userProps.deleteProperty('SESSION_EMAIL');
-}
-
-/**
- * Returns the currently active user's email.
- * Used for client-side polling to detect account changes.
- */
-function getActiveUserEmail() {
-  const email = Session.getActiveUser().getEmail();
-  const props = PropertiesService.getScriptProperties();
-  const lockedAccount = props.getProperty('LOCKED_ACCOUNT');
-  const isFirstTime = !props.getProperty('ADMIN_PASSWORD');
-  
-  return {
-    email: email,
-    lockedAccount: lockedAccount,
-    isFirstTime: isFirstTime,
-    accountMismatch: lockedAccount && lockedAccount !== email
-  };
-}
-
-/**
- * Logs out the user
- * @returns {Object} - Redirect URL
- */
-function logout() {
-  clearSession();
-  return {
-    success: true,
-    redirectUrl: ScriptApp.getService().getUrl()
-  };
-}

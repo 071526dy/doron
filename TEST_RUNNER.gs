@@ -5,7 +5,12 @@
 /**
  * Sends a simple test message to the user's registered LINE ID.
  */
-function verifyLineConnection() {
+/**
+ * Sends a simple test message to the user's registered LINE ID.
+ */
+function verifyLineConnection(token) {
+  if (!validateAdminSession(token)) throw new Error("Unauthorized");
+  
   const userId = CONFIG.USER_LINE_ID;
   if (userId === "NOT_SET") {
     throw new Error("LINE連携が完了していません。先にログインボタンから連携してください。");
@@ -14,45 +19,72 @@ function verifyLineConnection() {
   const url = 'https://api.line.me/v2/bot/message/push';
   const payload = {
     to: userId,
-    messages: [{ type: 'text', text: "✅ Doronシステム: LINE連携テスト成功です！本番メッセージはこのように届きます。" }]
+    messages: [
+      {
+        type: 'template',
+        altText: '【Doron】接続テスト通知',
+        template: {
+          type: 'buttons',
+          title: '✅ Doronシステム接続テスト',
+          text: 'LINEとの連携に成功しました。\nこれはテストですが、本番と同じ形式のボタンを表示しています。',
+          actions: [
+            {
+              type: 'message',
+              label: '🛑 緊急停止（テスト）',
+              text: '緊急停止テスト実行'
+            }
+          ]
+        }
+      }
+    ]
   };
 
-  fetchLineApi(url, payload);
-  return { success: true, message: "テストメッセージを送信しました。LINEを確認してください。" };
+  try {
+    fetchLineApi(url, payload);
+    return { success: true, message: "テストメッセージを送信しました。LINEを確認してください。" };
+  } catch (e) {
+    return { success: false, message: "エラーが発生しました: " + e.message };
+  }
 }
 
 /**
  * Simulates an emergency trigger (sends survival check to user).
  */
-function simulateEmergencyTrigger() {
+function simulateEmergencyTrigger(token) {
+  if (!validateAdminSession(token)) throw new Error("Unauthorized");
+
   sendSurvivalCheck();
-  return { success: true, message: "生存確認シミュレーションを開始しました。LINEを確認してください。" };
+  // Also start the timer so we can test the "Stop" button cancelling it
+  setExecutionTimer();
+  return { success: true, message: "生存確認シミュレーションを開始しました。\nLINE送信 ＆ 24時間タイマーを設定しました。" };
 }
 
 /**
  * Sends all "Last Messages" to the ADMIN (user) for content preview.
  * This prevents spamming actual recipients during testing.
  */
-function simulateLastMessages() {
+function simulateLastMessages(token) {
+  if (!validateAdminSession(token)) throw new Error("Unauthorized");
+
   const userEmail = CONFIG.USER_EMAIL;
-  let report = "【遺言送信プレビュー】\n\n実際に送信される内容は以下の通りです：\n\n";
+  // LINE Preview
+  let lineResult = "";
+  const userId = CONFIG.USER_LINE_ID;
+  if (userId && userId !== "NOT_SET") {
+    try {
+      const url = 'https://api.line.me/v2/bot/message/push';
+      const payload = {
+        to: userId,
+        messages: [{ type: 'text', text: "【遺言送信プレビュー】\n(Admin Preview)\n遺言送信のテストです。" }]
+      };
+      fetchLineApi(url, payload);
+      lineResult = "LINEに送信しました";
+    } catch (e) {
+      lineResult = "LINE送信失敗: " + e.message;
+    }
+  }
 
-  CONFIG.LAST_MESSAGES.forEach((msg, index) => {
-    report += `--- Message ${index + 1} ---\n`;
-    report += `宛名: ${msg.name}\n`;
-    report += `手段: ${msg.type}\n`;
-    report += `送信先: ${msg.id}\n`;
-    report += `本文:\n${msg.message}\n\n`;
-  });
-
-  // Send the preview to the user's email
-  MailApp.sendEmail({
-    to: userEmail,
-    subject: "【Doronシステム】遺言プレビュー",
-    body: report
-  });
-
-  return { success: true, message: "登録済みの遺言プレビューをご自身のメール（" + userEmail + "）に送信しました。" };
+  return { success: true, message: `プレビューを${lineResult}。` };
 }
 
 /**

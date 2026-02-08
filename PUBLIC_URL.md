@@ -2,12 +2,12 @@
 
 ## 🌐 公開URL (最新デプロイ)
 
-**デプロイ日時**: 2026-01-10
-
-### メインアプリケーションURL
-```
-https://script.google.com/macros/s/AKfycbzSjGI0m_qt0sioRoNonfsHenGzOmU9yNS4HS0m6bavvmZg1vl_8GUf5UsaaNHXKccT1Q/exec
-```
+**デプロイ日時**: 2026-01-29
+ 
+ ### メインアプリケーションURL
+ ```
+ https://script.google.com/macros/s/AKfycbzOTJm909VOm_KkLy2HWQDfgqkkGSRycaJA6vXDmmjgEi0OyaLRNuXx3lxcmqcHE2b5jA/exec
+ ```
 
 このURLをブラウザで開くと、Doronシステムのセットアップ画面が表示されます。
 
@@ -17,8 +17,8 @@ https://script.google.com/macros/s/AKfycbzSjGI0m_qt0sioRoNonfsHenGzOmU9yNS4HS0m6
 
 | デプロイID | バージョン | 説明 |
 |-----------|----------|------|
-| `AKfycbzSjGI0m_qt0sioRoNonfsHenGzOmU9yNS4HS0m6bavvmZg1vl_8GUf5UsaaNHXKccT1Q` | @7 | **最新** - Public Test Deployment |
-| `AKfycbyIyp9LeHd4G6Kwo2MGePvmf1EKP2yBcOm9-O4YKhU6` | @HEAD | 開発版 (HEAD) |
+| `AKfycbzOTJm909VOm_KkLy2HWQDfgqkkGSRycaJA6vXDmmjgEi0OyaLRNuXx3lxcmqcHE2b5jA` | @117 | **最新** - Account Switch Fix |
+| `AKfycbzSjGI0m_qt0sioRoNonfsHenGzOmU9yNS4HS0m6bavvmZg1vl_8GUf5UsaaNHXKccT1Q` | @86 | 以前の Public Test Deployment |
 
 ---
 
@@ -28,12 +28,7 @@ https://script.google.com/macros/s/AKfycbzSjGI0m_qt0sioRoNonfsHenGzOmU9yNS4HS0m6
 
 ### 1. LINE Messaging API - Webhook URL
 ```
-https://script.google.com/macros/s/AKfycbzSjGI0m_qt0sioRoNonfsHenGzOmU9yNS4HS0m6bavvmZg1vl_8GUf5UsaaNHXKccT1Q/exec
-```
-
-### 2. LINE Login - Callback URL
-```
-https://script.google.com/macros/s/AKfycbzSjGI0m_qt0sioRoNonfsHenGzOmU9yNS4HS0m6bavvmZg1vl_8GUf5UsaaNHXKccT1Q/exec
+https://script.google.com/macros/s/AKfycbzOTJm909VOm_KkLy2HWQDfgqkkGSRycaJA6vXDmmjgEi0OyaLRNuXx3lxcmqcHE2b5jA/exec
 ```
 
 ---

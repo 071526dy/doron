@@ -1,187 +1,280 @@
 /**
- * main.gs - Entry points for the Doron system.
+ * main.gs - Multi-User Service Controller
  */
 
-/**
- * Handles GET requests to show the setup/login page.
- */
 function doGet(e) {
-  // Handle OAuth callback
-  if (e.parameter.code) {
-    return handleAuthCallback(e.parameter.code);
+  try {
+    // 0. Serving Emergency Trigger Page
+    if (e && e.parameter && e.parameter.page === 'trigger') {
+      return renderHtml('trigger', {
+        scriptUrl: getAppUrl("")
+      });
+    }
+
+    // 0.1 Diagnostic Page
+    if (e && e.parameter && e.parameter.page === 'diag') {
+      return HtmlService.createHtmlOutput("<h1>Doron Service: OK</h1><p>Running in Multi-User Mode.</p>")
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    }
+
+    // 1. Handle OAuth callback (LINE Authorize)
+    if (e && e.parameter && e.parameter.code) {
+      return handleAuthCallback(e.parameter.code, e.parameter.state);
+    }
+
+    // 2. Serving SPA (index.html)
+    const sessionToken = (e && e.parameter) ? e.parameter.session : null;
+    
+    let userEmail = "Anonymous";
+    try {
+      userEmail = Session.getActiveUser().getEmail() || "Anonymous";
+    } catch(err) {
+      // Ignored
+    }
+
+    // Check if first time (no user record or no password set)
+    const user = (userEmail !== "Anonymous") ? DB.getUser(userEmail) : null;
+    const isFirstTime = !user || !user.hashed_password;
+
+    return renderHtml('index', {
+      userEmail: userEmail,
+      isFirstTime: isFirstTime,
+      sessionToken: sessionToken || "",
+      scriptUrl: getAppUrl(""),
+      switchAccountUrl: "https://accounts.google.com/AccountChooser?service=wise&continue=" + encodeURIComponent(getAppUrl(""))
+    });
+
+  } catch (err) {
+    console.error("Critical doGet Error: " + err.message);
+    return HtmlService.createHtmlOutput("System Error: " + err.message);
   }
+}
 
-  // Check session validity
-  const sessionToken = e.parameter.session;
-  if (!isValidSession(sessionToken)) {
-    // Show login page
-    return showLoginPage();
-  }
-
-  // Cleanup stale placeholders
-  fixPlaceholderProperties();
-
-  // Check if redirection from login came back
-  const status = e.parameter.status || "";
-
-  // Prepare template
-  const template = HtmlService.createTemplateFromFile('index');
-  template.config = getSettings();
-  template.statusMessage = status === 'success' ? 'LINE連携が完了しました。' : '';
-  template.sessionToken = sessionToken; // Pass session token to page
-
+function renderHtml(filename, data) {
+  const template = HtmlService.createTemplateFromFile(filename);
+  for (let key in data) { template[key] = data[key]; }
   return template.evaluate()
-    .setTitle('Doron System Setup')
+    .setTitle('Doron System')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 /**
- * Triggered when the Google Form is submitted.
- * @param {Object} e Form submission event object
- */
-function onFormSubmit(e) {
-  const responses = e.values; // Array of responses
-  const inputPasskey = responses[1]; // Assuming Passkey is the first question (index 1)
-
-  if (inputPasskey !== CONFIG.PASSKEY) {
-    console.warn("Invalid passkey attempt.");
-    return;
-  }
-
-  const userId = CONFIG.USER_LINE_ID;
-  if (userId === "NOT_SET") {
-    console.error("USER_LINE_ID is not set. Please complete the setup via the web app.");
-    return;
-  }
-
-  // 1. Send Survival Check to the user via LINE
-  sendSurvivalCheck();
-
-  // 2. Notify Keyman that the process has started
-  notifyKeyman("システムが正常に起動しました。本人へ生存確認を送信しました。24時間以内に反応がない場合は実行フェーズに移ります。");
-
-  // 3. Set the 24-hour timer
-  setExecutionTimer();
-  
-  console.log("Doron triggered. 24h timer started.");
-}
-
-/**
- * Handles incoming Webhook requests from LINE.
- * @param {Object} e Request event object
+ * LINE Messaging API Webhook (Multi-tenant routing)
  */
 function doPost(e) {
-  const json = JSON.parse(e.postData.contents);
-  const event = json.events[0];
+  try {
+    const postData = JSON.parse(e.postData.contents);
+    const event = postData.events[0];
+    if (!event) return ContentService.createTextOutput('ok');
 
-  if (!event) return;
+    const lineUserId = event.source.userId;
+    const user = DB.getUserByLineId(lineUserId);
 
-  // Handle postback (Button click)
-  if (event.type === 'postback') {
-    const data = event.postback.data;
-    if (data === 'action=cancel') {
-      cancelExecution();
-      replyToUser(event.replyToken, "🛑 緊急停止を受け付けました。処理を中断します。");
-      notifyKeyman("本人による生存確認が取れたため、処理を中断しました。");
+    if (event.type === 'message') {
+      const text = event.message.text.trim();
+      
+      // Admin helper to get ID
+      if (text.toLowerCase() === 'id') {
+        replyToUser(event.replyToken, `あなたのLINE IDは: ${lineUserId}\n管理画面に設定してください。`);
+        return ContentService.createTextOutput('ok');
+      }
+
+      if (user && (text === '生存確認' || text === '生存' || text === 'stop' || text === 'キャンセル')) {
+        cancelExecution(user.email);
+        sendLineMessage(lineUserId, "✅ 生存を確認しました。Doronシーケンスを停止しました。");
+      }
+    } else if (event.type === 'postback' && user) {
+      const data = event.postback.data;
+      if (data === 'action=stop') {
+        cancelExecution(user.email);
+        sendLineMessage(lineUserId, "✅ 緊急停止ボタンが押されました。シーケンスを停止しました。");
+      }
     }
+  } catch (err) {
+    console.error("Webhook route error: " + err.message);
   }
-
-  // Handle messages (e.g., getting IDs)
-  if (event.type === 'message' && event.message.type === 'text') {
-    const text = event.message.text.trim().toLowerCase();
-    if (text === 'id') {
-      const sourceId = event.source.groupId || event.source.userId;
-      const typeStr = event.source.type === 'group' ? "この【グループID】" : "あなたの【ユーザーID】";
-      replyToUser(event.replyToken, typeStr + "は以下の通りです。設定画面に貼り付けてください。\n\n" + sourceId);
-    }
-  }
-
-  // Handle join events (Greetings)
-  if (event.type === 'join') {
-    replyToUser(event.replyToken, "👻 Doronシステムです。招待ありがとうございます！\nこのグループで生存確認・緊急通知を行う場合は、メッセージで「ID」と送って表示されるIDをシステムに設定してください。");
-  }
-
-  return ContentService.createTextOutput(JSON.stringify({ content: 'ok' }))
-    .setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput('ok');
 }
 
 /**
- * Sets a time-based trigger for 24 hours later.
+ * DB-backed cancellation
  */
-function setExecutionTimer() {
-  ScriptApp.newTrigger('executeDoron')
-    .timeBased()
-    .after(CONFIG.GRACE_PERIOD_MS)
-    .create();
-}
-
-/**
- * Cancels all 'executeDoron' triggers.
- */
-function cancelExecution() {
-  const triggers = ScriptApp.getProjectTriggers();
-  for (let i = 0; i < triggers.length; i++) {
-    if (triggers[i].getHandlerFunction() === 'executeDoron') {
-      ScriptApp.deleteTrigger(triggers[i]);
+function cancelExecution(userEmail) {
+  const ss = DB.getSpreadsheet();
+  const sheet = ss.getSheetByName("triggers");
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const userColIdx = headers.indexOf("user_email");
+  const statusColIdx = headers.indexOf("status");
+  
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (data[i][userColIdx] === userEmail && data[i][statusColIdx] === "PENDING") {
+      sheet.getRange(i + 1, statusColIdx + 1).setValue("CANCELLED");
     }
   }
 }
 
 /**
- * The final execution function.
+ * Master Clock: Periodic Scanner
  */
-function executeDoron() {
-  console.log("Executing Doron sequence...");
+function processMasterClock() {
+  const ss = DB.getSpreadsheet();
+  const sheet = ss.getSheetByName("triggers");
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return;
+
+  const headers = data[0];
+  const userColIdx = headers.indexOf("user_email");
+  const timeColIdx = headers.indexOf("target_execution_time");
+  const statusColIdx = headers.indexOf("status");
   
-  // 1. Cleanup Drive
-  cleanupDrive();
+  const now = new Date();
   
-  // 2. Cleanup Gmail
-  cleanupGmail();
-  
-  // 3. Trigger MacroDroid (Android Wipe)
-  triggerDeviceWipe();
-  
-  // 4. Send Last Messages
-  sendLastMessagesToAll();
-  
-  console.log("Doron sequence complete.");
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][statusColIdx] === "PENDING") {
+      const targetTime = new Date(data[i][timeColIdx]);
+      if (now >= targetTime) {
+        const email = data[i][userColIdx];
+        sheet.getRange(i + 1, statusColIdx + 1).setValue("EXECUTING");
+        try {
+          executeByEmail(email);
+          sheet.getRange(i + 1, statusColIdx + 1).setValue("DONE");
+        } catch (e) {
+          sheet.getRange(i + 1, statusColIdx + 1).setValue("FAILED: " + e.message);
+        }
+      }
+    }
+  }
 }
 
 /**
- * Automatically cleans up any properties that still have placeholder values.
+ * Execute by user email context
  */
-function fixPlaceholderProperties() {
-  const props = PropertiesService.getScriptProperties();
-  const keys = ['LINE_CLIENT_ID', 'LINE_CLIENT_SECRET', 'LINE_ACCESS_TOKEN'];
-  keys.forEach(key => {
-    const val = props.getProperty(key);
-    if (val && val.includes("YOUR_")) {
-      props.deleteProperty(key);
+function executeByEmail(userEmail) {
+  const user = DB.getUser(userEmail);
+  const messages = DB.getMessages(userEmail);
+  
+  // 1. Send messages
+  messages.forEach(msg => {
+    if (msg.type === 'LINE') {
+      sendLineMessage(msg.recipient_id, msg.message_body);
+    } else {
+      MailApp.sendEmail(msg.recipient_id, "Doronシステム通知", msg.message_body);
     }
   });
+
+  // 2. Device Wipe
+  if (user.macrodroid_url) {
+    try { UrlFetchApp.fetch(user.macrodroid_url); } catch(e) { console.error("Wipe failed: " + e.message); }
+  }
+  
+  // 3. Optional Drive/Gmail cleanup
+  // (In service mode, this requires user-scoped OAuth tokens stored in DB)
+  // For now, we perform the actions authorized by the developer deployment if scopes match.
+  try { cleanupDrive(); } catch(e) { console.error("Drive Wipe Failed: " + e.message); }
+  try { cleanupGmail(); } catch(e) { console.error("Gmail Wipe Failed: " + e.message); }
 }
 
 /**
- * Shows the login page
+ * Public: Emergency Trigger via Web Page or Form
  */
-function showLoginPage() {
-  const props = PropertiesService.getScriptProperties();
-  const userEmail = Session.getActiveUser().getEmail();
-  const lockedAccount = props.getProperty('LOCKED_ACCOUNT');
-  const isFirstTime = !props.getProperty('ADMIN_PASSWORD');
-  const accountMismatch = lockedAccount && lockedAccount !== userEmail;
+function submitTriggerPasskey(inputPasskey) {
+  if (!inputPasskey) return { success: false, message: "パスキーを入力してください。" };
   
-  const template = HtmlService.createTemplateFromFile('login');
-  template.userEmail = userEmail;
-  template.lockedAccount = lockedAccount || '';
-  template.isFirstTime = isFirstTime;
-  template.accountMismatch = accountMismatch;
-  template.scriptUrl = ScriptApp.getService().getUrl();
+  const cleanPasskey = inputPasskey.trim();
+  // Find the specific user owning this unique passkey
+  const user = DB.getUserByPasskey(cleanPasskey);
   
-  return template.evaluate()
-    .setTitle('Doron System - Login')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  if (!user) {
+    return { success: false, message: "パスキーが正しくないか、登録されていません。" };
+  }
+
+  if (!user.line_id) {
+    return { success: false, message: "LINE連携が完了していないため、通知を送れません。" };
+  }
+
+  const waitHours = parseInt(user.grace_period_hours) || 24;
+  const target = new Date(new Date().getTime() + (waitHours * 60 * 60 * 1000));
+  
+  // Register the trigger in DB
+  DB.upsertRow("triggers", "user_email", user.email, {
+    user_email: user.email,
+    target_execution_time: target,
+    status: "PENDING"
+  });
+
+  // Notify user via LINE
+  sendSurvivalCheck(user.line_id, getAppUrl(""));
+  console.log(`Emergency Triggered for ${user.email} via Passkey.`);
+  
+  return { success: true, message: `システムを確認しました。${user.email} さんのLINEに生存確認メッセージを送信します。` };
+}
+
+/**
+ * Trigger: Handle Google Form Submission
+ */
+function onFormSubmit(e) {
+  try {
+    let passkey = "";
+    if (e.response) { // Form Trigger
+      const responses = e.response.getItemResponses();
+      passkey = responses[0].getResponse();
+    } else if (e.values) { // Spreadsheet Trigger
+      passkey = e.values[1];
+    }
+    
+    if (passkey) {
+      submitTriggerPasskey(passkey);
+    }
+  } catch (err) {
+    console.error("Form submit error: " + err.message);
+  }
+}
+
+/**
+ * Survival Check Trigger (Passkey validation for Admin Panel Test)
+ */
+function handlePasskeyTrigger(sessionToken, inputPasskey) {
+  const session = DB.getSession(sessionToken);
+  if (!session) throw new Error("セッション切れです。再ログインしてください。");
+
+  // Lazy migration check
+  DB.ensurePasskeyColumn();
+
+  const email = session.user_email;
+  const user = DB.getUser(email);
+  if (!user) throw new Error("ユーザーデータの取得に失敗しました。");
+  // In the admin panel, we check the user's OWN passkey
+  if (!user || user.passkey !== inputPasskey.trim()) {
+    return { success: false, message: "設定したパスキーと一致しません。" };
+  }
+
+  if (!user.line_id) {
+    return { success: false, message: "LINE連携が必要です。" };
+  }
+
+  const waitHours = parseInt(user.grace_period_hours) || 24;
+  const target = new Date(new Date().getTime() + (waitHours * 60 * 60 * 1000));
+  
+  DB.upsertRow("triggers", "user_email", user.email, {
+    user_email: user.email,
+    target_execution_time: target,
+    status: "PENDING"
+  });
+
+  sendSurvivalCheck(user.line_id, getAppUrl(""));
+  return { success: true, message: "生存確認メッセージを送信しました。" };
+}
+
+/**
+ * Admin: Initialize the system periodic trigger
+ */
+function adminInitMasterClock() {
+  const triggers = ScriptApp.getProjectTriggers();
+  for (let t of triggers) {
+    if (t.getHandlerFunction() === 'processMasterClock') ScriptApp.deleteTrigger(t);
+  }
+  ScriptApp.newTrigger('processMasterClock').timeBased().everyMinutes(5).create();
+  return { success: true, message: "Master Clock Trigger started." };
 }
